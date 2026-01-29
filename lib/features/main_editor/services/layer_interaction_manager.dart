@@ -803,8 +803,14 @@ class LayerInteractionManager {
         double posY = layerCenterOffset.dy;
         double posX = layerCenterOffset.dx;
 
-        rotationHelperLineX = posX + editorSize.width / 2;
-        rotationHelperLineY = posY + editorSize.height / 2;
+        // Adjust for coordinate origin
+        if (configs.mainEditor.coordinateOrigin == CoordinateOrigin.topLeft) {
+          rotationHelperLineX = posX;
+          rotationHelperLineY = posY;
+        } else {
+          rotationHelperLineX = posX + editorSize.width / 2;
+          rotationHelperLineY = posY + editorSize.height / 2;
+        }
         if (!showRotationHelperLine) {
           helperLinesCallbacks?.handleRotateLineHit();
         }

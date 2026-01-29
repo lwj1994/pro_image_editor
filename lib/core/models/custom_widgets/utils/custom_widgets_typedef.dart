@@ -1,7 +1,9 @@
 // Flutter imports:
 import 'package:flutter/widgets.dart';
-import '/core/models/layers/layer.dart';
 
+import '/core/models/editor_configs/pro_image_editor_configs.dart';
+import '/core/models/editor_image.dart';
+import '/core/models/layers/layer.dart';
 import '/features/main_editor/main_editor.dart';
 import '/shared/widgets/layer/models/layer_item_interaction.dart';
 import '/shared/widgets/reactive_widgets/reactive_custom_widget.dart';
@@ -300,4 +302,36 @@ typedef LayerInteractionBorder = Widget Function(
 typedef CustomBodyItems<T> = List<ReactiveWidget> Function(
   T editor,
   Stream<void> rebuildStream,
+);
+
+/// {@template backgroundImageBuilder}
+/// A function that builds a custom widget for the background image.
+///
+/// This allows external control over how the background image is displayed
+/// in the editor. When provided, this builder will be used instead of the
+/// default background image rendering.
+///
+/// - [image] - The editor image to display (may be null for blank canvas).
+/// - [imageSize] - The decoded size of the image.
+/// - [configs] - The editor configuration settings.
+///
+/// Returns a [Widget] that displays the background image.
+///
+/// **Example Usage:**
+/// ```dart
+/// bgImageBuilder: (image, imageSize, configs) {
+///   if (image == null) return const SizedBox();
+///   return Image.network(
+///     image.asNetworkUrl,
+///     fit: BoxFit.contain,
+///     width: imageSize.width,
+///     height: imageSize.height,
+///   );
+/// },
+/// ```
+/// {@endtemplate}
+typedef BackgroundImageBuilder = Widget Function(
+  EditorImage? image,
+  Size imageSize,
+  ProImageEditorConfigs configs,
 );

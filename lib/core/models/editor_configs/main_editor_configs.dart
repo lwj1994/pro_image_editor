@@ -1,9 +1,11 @@
 import 'package:flutter/widgets.dart';
 
+import '/core/enums/canvas_alignment.dart';
 import '/features/crop_rotate_editor/models/transform_configs.dart';
 import '/shared/utils/decode_image.dart';
 import '../../enums/editor_mode.dart';
 import '../custom_widgets/main_editor_widgets.dart';
+import '../custom_widgets/utils/custom_widgets_typedef.dart';
 import '../icons/main_editor_icons.dart';
 import '../styles/main_editor_style.dart';
 import 'utils/editor_safe_area.dart';
@@ -32,6 +34,9 @@ class MainEditorConfigs extends ZoomConfigs {
     this.enableEscapeButton = true,
     this.canZoomWhenLayerSelected = true,
     this.mobilePanInteraction = MobilePanInteraction.move,
+    this.canvasAlignment = CanvasAlignment.centerTop,
+    this.coordinateOrigin = CoordinateOrigin.topLeft,
+    this.bgImageBuilder,
     this.tools = const [
       SubEditorMode.paint,
       SubEditorMode.text,
@@ -90,6 +95,40 @@ class MainEditorConfigs extends ZoomConfigs {
   /// Defines the safe area configuration for the editor.
   final EditorSafeArea safeArea;
 
+  /// Specifies the alignment of the background image within the canvas.
+  ///
+  /// This determines where the image is positioned when it doesn't fill the
+  /// entire canvas area.
+  ///
+  /// Defaults to [CanvasAlignment.centerTop] (top center alignment).
+  ///
+  /// Example:
+  /// ```dart
+  /// MainEditorConfigs(
+  ///   canvasAlignment: CanvasAlignment.center, // Center alignment
+  /// )
+  /// ```
+  final CanvasAlignment canvasAlignment;
+
+  /// Specifies the origin point of the coordinate system for layer positioning.
+  ///
+  /// This affects how layer offsets are calculated and interpreted:
+  /// - [CoordinateOrigin.topLeft]: offset(0, 0) is at the top-left corner
+  /// - [CoordinateOrigin.center]: offset(0, 0) is at the canvas center
+  ///
+  /// Defaults to [CoordinateOrigin.topLeft].
+  ///
+  /// Example:
+  /// ```dart
+  /// MainEditorConfigs(
+  ///   coordinateOrigin: CoordinateOrigin.center, // Use center-based coordinates
+  /// )
+  /// ```
+  final CoordinateOrigin coordinateOrigin;
+
+  /// {@macro backgroundImageBuilder}
+  final BackgroundImageBuilder? bgImageBuilder;
+
   /// Defines which sub-editors are available in the bottom-bar of the editor.
   ///
   /// The order of the tools in this list determines the order in the UI.
@@ -138,6 +177,9 @@ class MainEditorConfigs extends ZoomConfigs {
     Curve? doubleTapZoomCurve,
     EditorSafeArea? safeArea,
     List<SubEditorMode>? tools,
+    CanvasAlignment? canvasAlignment,
+    CoordinateOrigin? coordinateOrigin,
+    BackgroundImageBuilder? bgImageBuilder,
   }) {
     return MainEditorConfigs(
       enableCloseButton: enableCloseButton ?? this.enableCloseButton,
@@ -162,6 +204,9 @@ class MainEditorConfigs extends ZoomConfigs {
       boundaryMargin: boundaryMargin ?? this.boundaryMargin,
       safeArea: safeArea ?? this.safeArea,
       tools: tools ?? this.tools,
+      canvasAlignment: canvasAlignment ?? this.canvasAlignment,
+      coordinateOrigin: coordinateOrigin ?? this.coordinateOrigin,
+      bgImageBuilder: bgImageBuilder ?? this.bgImageBuilder,
     );
   }
 }

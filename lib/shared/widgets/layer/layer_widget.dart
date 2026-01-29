@@ -116,11 +116,23 @@ class _LayerWidgetState extends State<LayerWidget>
 
   Size get _halfBodySize => widget.editorBodySize / 2;
 
-  /// Calculates the horizontal offset for the layer.
-  double get offsetX => _layer.offset.dx + _halfBodySize.width;
+  /// Calculates the horizontal offset for the layer based on the coordinate
+  /// origin configuration.
+  double get offsetX {
+    if (configs.mainEditor.coordinateOrigin == CoordinateOrigin.topLeft) {
+      return _layer.offset.dx;
+    }
+    return _layer.offset.dx + _halfBodySize.width;
+  }
 
-  /// Calculates the vertical offset for the layer.
-  double get offsetY => _layer.offset.dy + _halfBodySize.height;
+  /// Calculates the vertical offset for the layer based on the coordinate
+  /// origin configuration.
+  double get offsetY {
+    if (configs.mainEditor.coordinateOrigin == CoordinateOrigin.topLeft) {
+      return _layer.offset.dy;
+    }
+    return _layer.offset.dy + _halfBodySize.height;
+  }
 
   bool get _enableVisibleOverlay =>
       _layerInteractionManager?.layersAreSelectable(widget.configs) ?? false;

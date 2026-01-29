@@ -122,8 +122,10 @@ class MainEditorInteractiveContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool hasSelectedLayers = layerInteractionManager.hasSelectedLayers;
+    final canvasAlignment = configs.mainEditor.canvasAlignment.toAlignment();
 
-    return Center(
+    return Align(
+      alignment: canvasAlignment,
       child: Stack(
         children: [
           MainEditorFontPreloader(emojiEditorConfigs: configs.emojiEditor),

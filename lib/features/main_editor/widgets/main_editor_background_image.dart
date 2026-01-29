@@ -63,6 +63,21 @@ class MainEditorBackgroundImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bgImageBuilder = configs.mainEditor.bgImageBuilder;
+
+    // Use custom builder if provided
+    if (bgImageBuilder != null) {
+      return Hero(
+        tag: heroTag,
+        createRectTween: (begin, end) => RectTween(begin: begin, end: end),
+        child: bgImageBuilder(
+          editorImage,
+          sizesManager.decodedImageSize,
+          configs,
+        ),
+      );
+    }
+
     return Hero(
       tag: heroTag,
       createRectTween: (begin, end) => RectTween(begin: begin, end: end),

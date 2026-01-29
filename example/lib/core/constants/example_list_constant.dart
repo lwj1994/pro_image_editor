@@ -2,6 +2,7 @@ import 'package:example/features/layer/layer_group_page.dart';
 import 'package:flutter/material.dart';
 
 import '/features/ai/ai_group_page.dart';
+import '/features/canvas_coordinate_example.dart';
 import '/features/crop_to_main_editor.dart';
 import '/features/custom_widgets_example.dart';
 import '/features/default_example.dart';
@@ -167,5 +168,11 @@ List<Example> kImageEditorExamples = const [
     name: 'Frame',
     icon: Icons.filter_frames_outlined,
     page: FrameExample(),
+  ),
+  Example(
+    path: '/canvas-coordinate',
+    name: 'Canvas-Coordinate',
+    icon: Icons.grid_on_outlined,
+    page: CanvasCoordinateExample(),
   ),
 ];

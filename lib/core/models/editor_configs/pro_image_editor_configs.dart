@@ -24,6 +24,7 @@ import 'video_editor_configs.dart';
 
 export '/features/crop_rotate_editor/models/aspect_ratio_item.dart';
 export '/shared/utils/platform_info.dart';
+export '../../enums/canvas_alignment.dart';
 export '../../enums/design_mode.dart';
 export '../i18n/i18n.dart';
 export '../layers/enums/layer_background_mode.dart';

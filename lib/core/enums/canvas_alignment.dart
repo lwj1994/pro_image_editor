@@ -67,29 +67,3 @@ extension CanvasAlignmentExtension on CanvasAlignment {
     }
   }
 }
-
-/// Enum representing the origin point of the coordinate system used for
-/// positioning layers.
-///
-/// This affects how layer offsets are calculated and displayed.
-///
-/// Example Usage:
-/// ```dart
-/// MainEditorConfigs(
-///   coordinateOrigin: CoordinateOrigin.topLeft,
-/// )
-/// ```
-enum CoordinateOrigin {
-  /// The coordinate origin is at the center of the canvas.
-  ///
-  /// - offset(0, 0) places the layer at the canvas center
-  /// - Negative values move towards top-left
-  /// - Positive values move towards bottom-right
-  center,
-
-  /// The coordinate origin is at the top-left corner of the canvas.
-  ///
-  /// - offset(0, 0) places the layer at the top-left corner
-  /// - All offset values are positive for visible content
-  topLeft,
-}

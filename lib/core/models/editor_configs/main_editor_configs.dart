@@ -36,7 +36,6 @@ class MainEditorConfigs extends ZoomConfigs {
     this.contentOnly = false,
     this.mobilePanInteraction = MobilePanInteraction.move,
     this.canvasAlignment = CanvasAlignment.centerTop,
-    this.coordinateOrigin = CoordinateOrigin.center,
     this.canvasSize,
     this.bgImageBuilder,
     this.tools = const [
@@ -121,22 +120,6 @@ class MainEditorConfigs extends ZoomConfigs {
   /// ```
   final CanvasAlignment canvasAlignment;
 
-  /// Specifies the origin point of the coordinate system for layer positioning.
-  ///
-  /// This affects how layer offsets are calculated and interpreted:
-  /// - [CoordinateOrigin.topLeft]: offset(0, 0) is at the top-left corner
-  /// - [CoordinateOrigin.center]: offset(0, 0) is at the canvas center
-  ///
-  /// Defaults to [CoordinateOrigin.topLeft].
-  ///
-  /// Example:
-  /// ```dart
-  /// MainEditorConfigs(
-  ///   coordinateOrigin: CoordinateOrigin.center, // Use center-based coordinates
-  /// )
-  /// ```
-  final CoordinateOrigin coordinateOrigin;
-
   /// Specifies an optional fixed size for the canvas.
   ///
   /// When set, the canvas will be constrained to this size instead of
@@ -206,7 +189,6 @@ class MainEditorConfigs extends ZoomConfigs {
     EditorSafeArea? safeArea,
     List<SubEditorMode>? tools,
     CanvasAlignment? canvasAlignment,
-    CoordinateOrigin? coordinateOrigin,
     Size? canvasSize,
     BackgroundImageBuilder? bgImageBuilder,
   }) {
@@ -235,7 +217,6 @@ class MainEditorConfigs extends ZoomConfigs {
       safeArea: safeArea ?? this.safeArea,
       tools: tools ?? this.tools,
       canvasAlignment: canvasAlignment ?? this.canvasAlignment,
-      coordinateOrigin: coordinateOrigin ?? this.coordinateOrigin,
       canvasSize: canvasSize ?? this.canvasSize,
       bgImageBuilder: bgImageBuilder ?? this.bgImageBuilder,
     );
@@ -250,10 +231,7 @@ class MainEditorTransformSetup {
   ///
   /// - [transformConfigs]: The configuration settings for the transformation.
   /// - [imageInfos]: The information about the image to be edited.
-  MainEditorTransformSetup({
-    required this.transformConfigs,
-    this.imageInfos,
-  });
+  MainEditorTransformSetup({required this.transformConfigs, this.imageInfos});
 
   /// The configuration settings for the transformation applied in the main
   /// editor.

@@ -130,8 +130,11 @@ class MainEditorInteractiveContent extends StatelessWidget {
         children: [
           MainEditorFontPreloader(emojiEditorConfigs: configs.emojiEditor),
           Padding(
-            padding: hasSelectedLayers &&
-                    configs.layerInteraction.hideToolbarOnInteraction
+            padding:
+                hasSelectedLayers &&
+                    configs.layerInteraction.hideToolbarOnInteraction &&
+                    (sizesManager.appBarHeight > 0 ||
+                        sizesManager.bottomBarHeight > 0)
                 ? EdgeInsets.only(
                     top: sizesManager.appBarHeight,
                     bottom: sizesManager.bottomBarHeight,
@@ -210,10 +213,7 @@ class MainEditorInteractiveContent extends StatelessWidget {
           ? Stack(
               alignment: Alignment.center,
               fit: StackFit.expand,
-              children: [
-                buildVideo(),
-                _buildContentRecorder(),
-              ],
+              children: [buildVideo(), _buildContentRecorder()],
             )
           : _buildContentRecorder(),
     );
@@ -232,7 +232,9 @@ class MainEditorInteractiveContent extends StatelessWidget {
           buildLayers(),
           if (configs.mainEditor.widgets.bodyItemsRecorded != null)
             ...configs.mainEditor.widgets.bodyItemsRecorded!(
-                state, rebuildController.stream),
+              state,
+              rebuildController.stream,
+            ),
         ],
       ),
     );

@@ -1,5 +1,10 @@
 # Changelog
 
+## 11.20.1
+- **FIX**(main-editor): Fixed coordinate offset issues when toolbars are hidden or in `contentOnly` mode. 
+- **REFACTOR**(main-editor): Standardized the coordinate system to use `center` by default and removed the `coordinateOrigin` configuration to simplify layer positioning and ensure consistency across all modes.
+- **FIX**(main-editor): Optimized height calculations for `appBar` and `bottomBar` to correctly account for custom widgets or hidden states.
+
 ## 11.20.0
 - **FEAT**(main-editor): Add `contentOnly` config to render only the canvas without Scaffold, AppBar, BottomBar, and SafeArea.
   - When set to `true`, the editor renders only the canvas content

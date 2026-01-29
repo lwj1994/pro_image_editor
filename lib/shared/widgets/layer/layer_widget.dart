@@ -118,21 +118,11 @@ class _LayerWidgetState extends State<LayerWidget>
 
   /// Calculates the horizontal offset for the layer based on the coordinate
   /// origin configuration.
-  double get offsetX {
-    if (configs.mainEditor.coordinateOrigin == CoordinateOrigin.topLeft) {
-      return _layer.offset.dx;
-    }
-    return _layer.offset.dx + _halfBodySize.width;
-  }
+  double get offsetX => _layer.offset.dx + _halfBodySize.width;
 
   /// Calculates the vertical offset for the layer based on the coordinate
   /// origin configuration.
-  double get offsetY {
-    if (configs.mainEditor.coordinateOrigin == CoordinateOrigin.topLeft) {
-      return _layer.offset.dy;
-    }
-    return _layer.offset.dy + _halfBodySize.height;
-  }
+  double get offsetY => _layer.offset.dy + _halfBodySize.height;
 
   bool get _enableVisibleOverlay =>
       _layerInteractionManager?.layersAreSelectable(widget.configs) ?? false;
@@ -152,7 +142,8 @@ class _LayerWidgetState extends State<LayerWidget>
       _fractionalOffset = configs.stickerEditor.layerFractionalOffset;
     } else if (_layer.isPaintLayer) {
       var layer = _layer as PaintLayer;
-      _layerType = layer.item.mode == PaintMode.blur ||
+      _layerType =
+          layer.item.mode == PaintMode.blur ||
               layer.item.mode == PaintMode.pixelate
           ? LayerWidgetType.censor
           : LayerWidgetType.canvas;
@@ -238,8 +229,9 @@ class _LayerWidgetState extends State<LayerWidget>
       final interaction = _layer.interaction;
       final offsetDistance =
           (event.position - _lastDownEvent!.position).distance;
-      final timeElapsed =
-          DateTime.now().difference(_tapDownTimestamp).inMilliseconds;
+      final timeElapsed = DateTime.now()
+          .difference(_tapDownTimestamp)
+          .inMilliseconds;
 
       // Ignore if pointer moved too much (exceeds tap slop)
       if (offsetDistance >= tapSlop) return;
@@ -321,8 +313,9 @@ class _LayerWidgetState extends State<LayerWidget>
   Widget build(BuildContext context) {
     Matrix4 transformMatrix = _calcTransformMatrix();
 
-    final overlayPadding =
-        _isSelected ? layerInteraction.style.overlayPadding : EdgeInsets.zero;
+    final overlayPadding = _isSelected
+        ? layerInteraction.style.overlayPadding
+        : EdgeInsets.zero;
 
     final adjustedLeft =
         offsetX - overlayPadding.horizontal * (_fractionalOffset.dx + 0.5);
@@ -363,7 +356,9 @@ class _LayerWidgetState extends State<LayerWidget>
       isInteractive: widget.isInteractive,
       enableVisibleOverlay: _enableVisibleOverlay,
       onScaleRotateDown: (details) => _layersService?.handleScaleRotateDown(
-          context.size ?? Size.zero, _layer),
+        context.size ?? Size.zero,
+        _layer,
+      ),
       onScaleRotateUp: (_) => _layersService?.handleScaleRotateUp(),
       onRemoveLayer: () => _layersService?.handleRemoveLayer(_layer),
       onDuplicate: widget.onDuplicate,
@@ -371,47 +366,50 @@ class _LayerWidgetState extends State<LayerWidget>
       onUngroupLayers: () => _layersService?.handleUngroupLayers(_layer),
       child: _buildCursor(
         child: ValueListenableBuilder(
-            valueListenable: _lastHitState,
-            builder: (_, __, ___) {
-              return GestureDetector(
+          valueListenable: _lastHitState,
+          builder: (_, __, ___) {
+            return GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onSecondaryTapUp: isDesktop ? _onSecondaryTapUp : null,
+              child: Listener(
                 behavior: HitTestBehavior.translucent,
-                onSecondaryTapUp: isDesktop ? _onSecondaryTapUp : null,
-                child: Listener(
-                  behavior: HitTestBehavior.translucent,
-                  onPointerDown: _onPointerDown,
-                  onPointerUp: _onPointerUp,
-                  child: Padding(
-                    padding: !_isSelected
-                        ? EdgeInsets.zero
-                        : layerInteraction.style.overlayPadding,
-                    child: FittedBox(
-                      key: _layer.keyInternalSize,
-                      child: _buildContent(),
-                    ),
+                onPointerDown: _onPointerDown,
+                onPointerUp: _onPointerUp,
+                child: Padding(
+                  padding: !_isSelected
+                      ? EdgeInsets.zero
+                      : layerInteraction.style.overlayPadding,
+                  child: FittedBox(
+                    key: _layer.keyInternalSize,
+                    child: _buildContent(),
                   ),
                 ),
-              );
-            }),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
   Widget _buildCursor({required Widget child}) {
     return ValueListenableBuilder(
-        valueListenable: _showMoveCursor,
-        builder: (_, showCursor, __) {
-          return MouseRegion(
-            hitTestBehavior: HitTestBehavior.translucent,
-            cursor: showCursor &&
-                    _layer.interaction.enableMove &&
-                    widget.enableMouseCursor
-                ? layerInteraction.style.hoverCursor
-                : MouseCursor.defer,
-            onEnter: (event) => _onHoverEnter(),
-            onExit: (event) => _onHoverLeave(),
-            child: child,
-          );
-        });
+      valueListenable: _showMoveCursor,
+      builder: (_, showCursor, __) {
+        return MouseRegion(
+          hitTestBehavior: HitTestBehavior.translucent,
+          cursor:
+              showCursor &&
+                  _layer.interaction.enableMove &&
+                  widget.enableMouseCursor
+              ? layerInteraction.style.hoverCursor
+              : MouseCursor.defer,
+          onEnter: (event) => _onHoverEnter(),
+          onExit: (event) => _onHoverLeave(),
+          child: child,
+        );
+      },
+    );
   }
 
   /// Builds the content widget based on the type of layer being displayed.

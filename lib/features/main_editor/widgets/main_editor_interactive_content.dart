@@ -130,8 +130,7 @@ class MainEditorInteractiveContent extends StatelessWidget {
         children: [
           MainEditorFontPreloader(emojiEditorConfigs: configs.emojiEditor),
           Padding(
-            padding:
-                hasSelectedLayers &&
+            padding: hasSelectedLayers &&
                     configs.layerInteraction.hideToolbarOnInteraction &&
                     (sizesManager.appBarHeight > 0 ||
                         sizesManager.bottomBarHeight > 0)

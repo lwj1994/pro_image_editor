@@ -541,8 +541,7 @@ class LayerInteractionManager {
       _rotateScaleButtonStartPosition ??= touchPositionFromLayerCenter;
 
       if (layer.interaction.enableScale) {
-        layer.scale =
-            _getLayerBaseScale(layer.id) *
+        layer.scale = _getLayerBaseScale(layer.id) *
             calculateScale(
               _rotateScaleButtonStartPosition!,
               touchPositionFromLayerCenter,
@@ -551,8 +550,7 @@ class LayerInteractionManager {
       }
 
       if (layer.interaction.enableRotate) {
-        layer.rotation =
-            _getLayerBaseAngle(layer.id) +
+        layer.rotation = _getLayerBaseAngle(layer.id) +
             calculateRotation(
               _rotateScaleButtonStartPosition!,
               touchPositionFromLayerCenter,
@@ -620,10 +618,10 @@ class LayerInteractionManager {
 
       bool hitAreaX =
           detail.focalPoint.dx >= snapStartPosX - releaseThreshold &&
-          detail.focalPoint.dx <= snapStartPosX + releaseThreshold;
+              detail.focalPoint.dx <= snapStartPosX + releaseThreshold;
       bool hitAreaY =
           detail.focalPoint.dy >= snapStartPosY - releaseThreshold &&
-          detail.focalPoint.dy <= snapStartPosY + releaseThreshold;
+              detail.focalPoint.dy <= snapStartPosY + releaseThreshold;
 
       bool helperGoNearLineLeft =
           posX >= 0 && lastPositionX == LayerLastPosition.left;
@@ -648,9 +646,8 @@ class LayerInteractionManager {
           lastPositionX = LayerLastPosition.center;
         } else {
           showVerticalHelperLine = false;
-          lastPositionX = posX <= 0
-              ? LayerLastPosition.left
-              : LayerLastPosition.right;
+          lastPositionX =
+              posX <= 0 ? LayerLastPosition.left : LayerLastPosition.right;
         }
       }
 
@@ -668,9 +665,8 @@ class LayerInteractionManager {
           lastPositionY = LayerLastPosition.center;
         } else {
           showHorizontalHelperLine = false;
-          lastPositionY = posY <= 0
-              ? LayerLastPosition.top
-              : LayerLastPosition.bottom;
+          lastPositionY =
+              posY <= 0 ? LayerLastPosition.top : LayerLastPosition.bottom;
         }
       }
 
@@ -843,13 +839,13 @@ class LayerInteractionManager {
       lastPositionY = posY <= -releaseThreshold
           ? LayerLastPosition.top
           : posY >= releaseThreshold
-          ? LayerLastPosition.bottom
-          : LayerLastPosition.center;
+              ? LayerLastPosition.bottom
+              : LayerLastPosition.center;
       lastPositionX = posX <= -releaseThreshold
           ? LayerLastPosition.left
           : posX >= releaseThreshold
-          ? LayerLastPosition.right
-          : LayerLastPosition.center;
+              ? LayerLastPosition.right
+              : LayerLastPosition.center;
     }
   }
 
@@ -1033,8 +1029,8 @@ class LayerInteractionManager {
     final Offset localPointFromCenter = activeLayer.computeLocalCenterOffset(
       fractionalOffset,
     );
-    final Offset layerCenterOffset = activeLayer
-        .computeOffsetFromCenterFraction(fractionalOffset);
+    final Offset layerCenterOffset =
+        activeLayer.computeOffsetFromCenterFraction(fractionalOffset);
 
     List<Offset> uniqueDxOffsets = [];
     List<Offset> uniqueDyOffsets = [];
@@ -1128,8 +1124,7 @@ class LayerInteractionManager {
     }
 
     // Notify UI only if something changed
-    final hasChanged =
-        isHorizontalGuideVisible != wasHorizontalGuideVisible ||
+    final hasChanged = isHorizontalGuideVisible != wasHorizontalGuideVisible ||
         isVerticalGuideVisible != wasVerticalGuideVisible;
 
     if (hasChanged) {
@@ -1161,9 +1156,8 @@ class _LayerAlignGuideHelper {
     final diff = (_lastSnapFocal ?? focal) - focal;
 
     if (_lastSnapFocal == null || diff.abs() < releaseThreshold) {
-      final newPosition = focalDelta > 0
-          ? positiveDirection
-          : negativeDirection;
+      final newPosition =
+          focalDelta > 0 ? positiveDirection : negativeDirection;
 
       if (newPosition != _lastSnapPosition || _lastSnapOffset != offset) {
         _lastSnapFocal ??= focal;
@@ -1172,9 +1166,8 @@ class _LayerAlignGuideHelper {
         return true;
       }
     } else if (diff.abs() > releaseThreshold) {
-      _lastSnapPosition = focal > _lastSnapFocal!
-          ? positiveDirection
-          : negativeDirection;
+      _lastSnapPosition =
+          focal > _lastSnapFocal! ? positiveDirection : negativeDirection;
       _lastSnapFocal = null;
     }
 

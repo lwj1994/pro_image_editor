@@ -1,5 +1,33 @@
 # Changelog
 
+## 11.19.0
+- **FEAT**(main-editor): Add `canvasAlignment` config to control background image position within the canvas.
+  - Supports 9 alignment options: `center`, `centerTop`, `centerBottom`, `topLeft`, `topRight`, `bottomLeft`, `bottomRight`, `centerLeft`, `centerRight`
+  - Default: `CanvasAlignment.centerTop` (top center alignment)
+  - Example: `MainEditorConfigs(canvasAlignment: CanvasAlignment.center)`
+
+- **FEAT**(main-editor): Add `coordinateOrigin` config to set the coordinate system origin for layer positioning.
+  - `CoordinateOrigin.topLeft`: offset(0, 0) is at the top-left corner of the canvas
+  - `CoordinateOrigin.center`: offset(0, 0) is at the center of the canvas (previous default behavior)
+  - Default: `CoordinateOrigin.topLeft`
+  - Example: `MainEditorConfigs(coordinateOrigin: CoordinateOrigin.center)`
+
+- **FEAT**(main-editor): Add `bgImageBuilder` callback for custom background image rendering.
+  - Allows external control over how the background image widget is displayed
+  - Receives `EditorImage?`, `Size imageSize`, and `ProImageEditorConfigs` as parameters
+  - When `null`, uses the default background image rendering
+  - Example:
+    ```dart
+    MainEditorConfigs(
+      bgImageBuilder: (image, imageSize, configs) {
+        return Container(
+          decoration: BoxDecoration(border: Border.all(color: Colors.blue)),
+          child: Image.asset('path/to/image.png', fit: BoxFit.contain),
+        );
+      },
+    )
+    ```
+
 ## 11.18.3
 - **FEAT**(paint-editor): Add freestyle arrow modes (`freeStyleArrowStart`, `freeStyleArrowEnd`, `freeStyleArrowStartEnd`) to draw freehand paths with arrowheads at the start, end, or both ends.
 

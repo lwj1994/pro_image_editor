@@ -50,9 +50,8 @@ class _CanvasCoordinateExampleState extends State<CanvasCoordinateExample>
       mainEditor: MainEditorConfigs(
         coordinateOrigin: _coordinateOrigin,
         contentOnly: _contentOnly,
-        canvasSize: _useCustomCanvasSize
-            ? Size(_canvasWidth, _canvasHeight)
-            : null,
+        canvasSize:
+            _useCustomCanvasSize ? Size(_canvasWidth, _canvasHeight) : null,
         bgImageBuilder: _useCustomBgBuilder ? _customBgImageBuilder : null,
       ),
     );
@@ -364,21 +363,10 @@ class _CanvasCoordinateExampleState extends State<CanvasCoordinateExample>
 
   Widget _buildEditor() {
     if (_contentOnly) {
-      return Material(
-        type: MaterialType.transparency,
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            Expanded(
-              child: _ContentOnlyEditorPage(
-                configs: _configs,
-                callbacks: _callbacks,
-                editorKey: editorKey,
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+      return _ContentOnlyEditorPage(
+        configs: _configs,
+        callbacks: _callbacks,
+        editorKey: editorKey,
       );
     }
     return ProImageEditor.asset(

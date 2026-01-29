@@ -1,5 +1,17 @@
 # Changelog
 
+## 11.20.0
+- **FEAT**(main-editor): Add `contentOnly` config to render only the canvas without Scaffold, AppBar, BottomBar, and SafeArea.
+  - When set to `true`, the editor renders only the canvas content
+  - Useful when embedding the editor into a custom layout where you want full control over the surrounding UI
+  - Default: `false`
+  - Example:
+    ```dart
+    MainEditorConfigs(
+      contentOnly: true, // Only canvas, no scaffold/appbar/bottombar
+    )
+    ```
+
 ## 11.19.0
 - **FEAT**(main-editor): Add `canvasAlignment` config to control background image position within the canvas.
   - Supports 9 alignment options: `center`, `centerTop`, `centerBottom`, `topLeft`, `topRight`, `bottomLeft`, `bottomRight`, `centerLeft`, `centerRight`
@@ -8,9 +20,9 @@
 
 - **FEAT**(main-editor): Add `coordinateOrigin` config to set the coordinate system origin for layer positioning.
   - `CoordinateOrigin.topLeft`: offset(0, 0) is at the top-left corner of the canvas
-  - `CoordinateOrigin.center`: offset(0, 0) is at the center of the canvas (previous default behavior)
-  - Default: `CoordinateOrigin.topLeft`
-  - Example: `MainEditorConfigs(coordinateOrigin: CoordinateOrigin.center)`
+  - `CoordinateOrigin.center`: offset(0, 0) is at the center of the canvas
+  - Default: `CoordinateOrigin.center`
+  - Example: `MainEditorConfigs(coordinateOrigin: CoordinateOrigin.topLeft)`
 
 - **FEAT**(main-editor): Add `bgImageBuilder` callback for custom background image rendering.
   - Allows external control over how the background image widget is displayed
@@ -25,6 +37,18 @@
           child: Image.asset('path/to/image.png', fit: BoxFit.contain),
         );
       },
+    )
+    ```
+
+- **FEAT**(main-editor): Add `canvasSize` config to set a fixed canvas size.
+  - When set, the canvas will be constrained to the specified size instead of occupying the entire available body space
+  - Useful when you want a specific canvas area within a larger editor body
+  - If `null` (default), the canvas uses the full available space
+  - The canvas size is automatically clamped to the available space to prevent overflow
+  - Example:
+    ```dart
+    MainEditorConfigs(
+      canvasSize: Size(400, 600), // Fixed 400x600 canvas
     )
     ```
 

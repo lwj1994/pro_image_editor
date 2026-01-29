@@ -12,6 +12,7 @@ import '/core/mixin/example_helper.dart';
 /// - Set the background image alignment (e.g., centerTop)
 /// - Configure the coordinate system origin (topLeft vs center)
 /// - Use a custom background image builder
+/// - Use contentOnly mode to render only the canvas
 /// - Print layer coordinates in real-time
 class CanvasCoordinateExample extends StatefulWidget {
   /// Creates a new [CanvasCoordinateExample] widget.
@@ -24,9 +25,12 @@ class CanvasCoordinateExample extends StatefulWidget {
 
 class _CanvasCoordinateExampleState extends State<CanvasCoordinateExample>
     with ExampleHelperState<CanvasCoordinateExample> {
-  CanvasAlignment _canvasAlignment = CanvasAlignment.centerTop;
-  CoordinateOrigin _coordinateOrigin = CoordinateOrigin.topLeft;
+  CoordinateOrigin _coordinateOrigin = CoordinateOrigin.center;
   bool _useCustomBgBuilder = false;
+  bool _useCustomCanvasSize = false;
+  bool _contentOnly = false;
+  double _canvasWidth = 300;
+  double _canvasHeight = 400;
 
   // Store layer info for display
   String _layerInfo = 'No layers yet';
@@ -44,8 +48,11 @@ class _CanvasCoordinateExampleState extends State<CanvasCoordinateExample>
     _configs = ProImageEditorConfigs(
       designMode: platformDesignMode,
       mainEditor: MainEditorConfigs(
-        canvasAlignment: _canvasAlignment,
         coordinateOrigin: _coordinateOrigin,
+        contentOnly: _contentOnly,
+        canvasSize: _useCustomCanvasSize
+            ? Size(_canvasWidth, _canvasHeight)
+            : null,
         bgImageBuilder: _useCustomBgBuilder ? _customBgImageBuilder : null,
       ),
     );
@@ -113,19 +120,19 @@ class _CanvasCoordinateExampleState extends State<CanvasCoordinateExample>
 
         buffer
           ..writeln('Layer ${i + 1} (${_getLayerType(layer)}):')
-          ..writeln('  offset: ($dx, $dy)')
+          ..writeln('  offset: Offset($dx, $dy)')
           ..writeln('  scale: $scale')
           ..writeln('  rotation: $rotation°')
           ..writeln('');
+
+        // Print layer offset to console when moving
+        if (kDebugMode) {
+          // ignore: avoid_print
+          print('Layer ${_getLayerType(layer)} offset: Offset($dx, $dy)');
+        }
       }
 
       _layerInfo = buffer.toString();
-
-      // Print to console
-      if (kDebugMode) {
-        // ignore: avoid_print
-        print(_layerInfo);
-      }
     }
   }
 
@@ -146,50 +153,6 @@ class _CanvasCoordinateExampleState extends State<CanvasCoordinateExample>
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Canvas Alignment Selection
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Canvas Alignment',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Controls where the background image is positioned',
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: CanvasAlignment.values.map((alignment) {
-                      return ChoiceChip(
-                        label: Text(alignment.name),
-                        selected: _canvasAlignment == alignment,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() {
-                              _canvasAlignment = alignment;
-                              _updateConfigs();
-                            });
-                          }
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
           // Coordinate Origin Selection
           Card(
             child: Padding(
@@ -247,6 +210,91 @@ class _CanvasCoordinateExampleState extends State<CanvasCoordinateExample>
                   _updateConfigs();
                 });
               },
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Content Only Mode Toggle
+          Card(
+            child: SwitchListTile(
+              title: const Text('Content Only Mode'),
+              subtitle: const Text(
+                'Renders only canvas without Scaffold, AppBar, BottomBar',
+              ),
+              value: _contentOnly,
+              onChanged: (value) {
+                setState(() {
+                  _contentOnly = value;
+                  _updateConfigs();
+                });
+              },
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Canvas Size Configuration
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SwitchListTile(
+                    title: const Text('Use Custom Canvas Size'),
+                    subtitle: const Text(
+                      'Constrain canvas to a fixed size instead of full body',
+                    ),
+                    value: _useCustomCanvasSize,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (value) {
+                      setState(() {
+                        _useCustomCanvasSize = value;
+                        _updateConfigs();
+                      });
+                    },
+                  ),
+                  if (_useCustomCanvasSize) ...[
+                    const SizedBox(height: 16),
+                    Text('Width: ${_canvasWidth.toInt()}'),
+                    Slider(
+                      value: _canvasWidth,
+                      min: 100,
+                      max: 500,
+                      divisions: 40,
+                      label: _canvasWidth.toInt().toString(),
+                      onChanged: (value) {
+                        setState(() {
+                          _canvasWidth = value;
+                          _updateConfigs();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Height: ${_canvasHeight.toInt()}'),
+                    Slider(
+                      value: _canvasHeight,
+                      min: 100,
+                      max: 700,
+                      divisions: 60,
+                      label: _canvasHeight.toInt().toString(),
+                      onChanged: (value) {
+                        setState(() {
+                          _canvasHeight = value;
+                          _updateConfigs();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Canvas Size: ${_canvasWidth.toInt()} x '
+                      '${_canvasHeight.toInt()}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
 
@@ -315,11 +363,69 @@ class _CanvasCoordinateExampleState extends State<CanvasCoordinateExample>
   }
 
   Widget _buildEditor() {
+    if (_contentOnly) {
+      return Material(
+        type: MaterialType.transparency,
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Expanded(
+              child: _ContentOnlyEditorPage(
+                configs: _configs,
+                callbacks: _callbacks,
+                editorKey: editorKey,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      );
+    }
     return ProImageEditor.asset(
       kImageEditorExampleAssetPath,
       key: editorKey,
       callbacks: _callbacks,
       configs: _configs,
+    );
+  }
+}
+
+/// A page that demonstrates contentOnly mode with custom UI controls
+class _ContentOnlyEditorPage extends StatelessWidget {
+  const _ContentOnlyEditorPage({
+    required this.configs,
+    required this.callbacks,
+    required this.editorKey,
+  });
+
+  final ProImageEditorConfigs configs;
+  final ProImageEditorCallbacks callbacks;
+  final GlobalKey<ProImageEditorState> editorKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Content Only Demo'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.emoji_emotions),
+            tooltip: 'Add Emoji',
+            onPressed: () => editorKey.currentState?.openEmojiEditor(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.check),
+            tooltip: 'Done',
+            onPressed: () => editorKey.currentState?.doneEditing(),
+          ),
+        ],
+      ),
+      body: ProImageEditor.asset(
+        kImageEditorExampleAssetPath,
+        key: editorKey,
+        callbacks: callbacks,
+        configs: configs,
+      ),
     );
   }
 }

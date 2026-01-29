@@ -2537,24 +2537,32 @@ class ProImageEditorState extends State<ProImageEditor>
               value: mainEditorConfigs.style.uiOverlayStyle,
               child: Theme(
                 data: _theme,
-                child: SafeArea(
-                  top: mainEditorConfigs.safeArea.top,
-                  bottom: mainEditorConfigs.safeArea.bottom,
-                  left: mainEditorConfigs.safeArea.left,
-                  right: mainEditorConfigs.safeArea.right,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      sizesManager.editorSize = constraints.biggest;
-                      return Scaffold(
-                        backgroundColor: mainEditorConfigs.style.background,
-                        resizeToAvoidBottomInset: false,
-                        appBar: _buildAppBar(),
-                        body: _buildBody(),
-                        bottomNavigationBar: _buildBottomNavBar(),
-                      );
-                    },
-                  ),
-                ),
+                child: mainEditorConfigs.contentOnly
+                    ? LayoutBuilder(
+                        builder: (context, constraints) {
+                          sizesManager.editorSize = constraints.biggest;
+                          return _buildBody();
+                        },
+                      )
+                    : SafeArea(
+                        top: mainEditorConfigs.safeArea.top,
+                        bottom: mainEditorConfigs.safeArea.bottom,
+                        left: mainEditorConfigs.safeArea.left,
+                        right: mainEditorConfigs.safeArea.right,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            sizesManager.editorSize = constraints.biggest;
+                            return Scaffold(
+                              backgroundColor:
+                                  mainEditorConfigs.style.background,
+                              resizeToAvoidBottomInset: false,
+                              appBar: _buildAppBar(),
+                              body: _buildBody(),
+                              bottomNavigationBar: _buildBottomNavBar(),
+                            );
+                          },
+                        ),
+                      ),
               ),
             ),
           ),
@@ -2588,8 +2596,20 @@ class ProImageEditorState extends State<ProImageEditor>
 
   Widget _buildBody() {
     return LayoutBuilder(builder: (context, constraints) {
-      sizesManager.bodySize = constraints.biggest;
-      return !_isVideoPlayerReady
+      final canvasSize = mainEditorConfigs.canvasSize;
+      final Size effectiveBodySize;
+      if (canvasSize != null) {
+        // Use the configured canvas size, but clamp to available space
+        effectiveBodySize = Size(
+          canvasSize.width.clamp(0, constraints.biggest.width),
+          canvasSize.height.clamp(0, constraints.biggest.height),
+        );
+      } else {
+        effectiveBodySize = constraints.biggest;
+      }
+      sizesManager.bodySize = effectiveBodySize;
+
+      Widget content = !_isVideoPlayerReady
           ? _buildSetupSpinner()
           : Listener(
               behavior: HitTestBehavior.translucent,
@@ -2655,7 +2675,7 @@ class ProImageEditorState extends State<ProImageEditor>
                 behavior: HitTestBehavior.translucent,
                 onTap: () {
                   /// That function is required so that multiselect works
-                  /// correctly, even when it’s empty.
+                  /// correctly, even when it's empty.
                 },
                 onLongPress: mainEditorCallbacks?.onLongPress,
                 onScaleStart: _onScaleStart,
@@ -2669,6 +2689,19 @@ class ProImageEditorState extends State<ProImageEditor>
                     _buildInteractiveContent(),
               ),
             );
+
+      // Wrap with SizedBox and center if canvasSize is configured
+      if (canvasSize != null) {
+        content = Center(
+          child: SizedBox(
+            width: effectiveBodySize.width,
+            height: effectiveBodySize.height,
+            child: content,
+          ),
+        );
+      }
+
+      return content;
     });
   }
 

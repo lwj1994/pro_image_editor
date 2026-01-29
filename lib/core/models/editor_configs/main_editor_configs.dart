@@ -33,9 +33,11 @@ class MainEditorConfigs extends ZoomConfigs {
     this.enableCloseButton = true,
     this.enableEscapeButton = true,
     this.canZoomWhenLayerSelected = true,
+    this.contentOnly = false,
     this.mobilePanInteraction = MobilePanInteraction.move,
     this.canvasAlignment = CanvasAlignment.centerTop,
-    this.coordinateOrigin = CoordinateOrigin.topLeft,
+    this.coordinateOrigin = CoordinateOrigin.center,
+    this.canvasSize,
     this.bgImageBuilder,
     this.tools = const [
       SubEditorMode.paint,
@@ -78,6 +80,15 @@ class MainEditorConfigs extends ZoomConfigs {
   /// If set to `true`, users can zoom in or out while a layer is selected.
   /// If set to `false`, zooming is disabled when a layer is selected.
   final bool canZoomWhenLayerSelected;
+
+  /// When set to `true`, the editor renders only the canvas content without
+  /// Scaffold, AppBar, BottomBar, and SafeArea.
+  ///
+  /// This is useful when embedding the editor into a custom layout where you
+  /// want full control over the surrounding UI.
+  ///
+  /// Defaults to `false`.
+  final bool contentOnly;
 
   /// Initializes the editor with pre-configured transformations,
   /// such as cropping, based on the provided setup.
@@ -126,6 +137,22 @@ class MainEditorConfigs extends ZoomConfigs {
   /// ```
   final CoordinateOrigin coordinateOrigin;
 
+  /// Specifies an optional fixed size for the canvas.
+  ///
+  /// When set, the canvas will be constrained to this size instead of
+  /// occupying the entire available body space. This is useful when you want
+  /// a specific canvas area within a larger editor body.
+  ///
+  /// If `null` (default), the canvas uses the full available space.
+  ///
+  /// Example:
+  /// ```dart
+  /// MainEditorConfigs(
+  ///   canvasSize: Size(400, 600), // Fixed 400x600 canvas
+  /// )
+  /// ```
+  final Size? canvasSize;
+
   /// {@macro backgroundImageBuilder}
   final BackgroundImageBuilder? bgImageBuilder;
 
@@ -160,6 +187,7 @@ class MainEditorConfigs extends ZoomConfigs {
   MainEditorConfigs copyWith({
     bool? enableCloseButton,
     bool? enableEscapeButton,
+    bool? contentOnly,
     MainEditorTransformSetup? transformSetup,
     MainEditorStyle? style,
     MainEditorIcons? icons,
@@ -179,11 +207,13 @@ class MainEditorConfigs extends ZoomConfigs {
     List<SubEditorMode>? tools,
     CanvasAlignment? canvasAlignment,
     CoordinateOrigin? coordinateOrigin,
+    Size? canvasSize,
     BackgroundImageBuilder? bgImageBuilder,
   }) {
     return MainEditorConfigs(
       enableCloseButton: enableCloseButton ?? this.enableCloseButton,
       enableEscapeButton: enableEscapeButton ?? this.enableEscapeButton,
+      contentOnly: contentOnly ?? this.contentOnly,
       transformSetup: transformSetup ?? this.transformSetup,
       style: style ?? this.style,
       icons: icons ?? this.icons,
@@ -206,6 +236,7 @@ class MainEditorConfigs extends ZoomConfigs {
       tools: tools ?? this.tools,
       canvasAlignment: canvasAlignment ?? this.canvasAlignment,
       coordinateOrigin: coordinateOrigin ?? this.coordinateOrigin,
+      canvasSize: canvasSize ?? this.canvasSize,
       bgImageBuilder: bgImageBuilder ?? this.bgImageBuilder,
     );
   }

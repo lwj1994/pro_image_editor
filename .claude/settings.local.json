@@ -3,6 +3,8 @@
     "allow": [
       "Bash(flutter analyze:*)",
       "Bash(git add:*)",
+      "Bash(git tag:*)",
+      "Bash(git push:*)",
       "Bash(git commit:*)",
       "Bash(git show:*)"
     ]

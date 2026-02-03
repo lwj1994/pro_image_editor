@@ -36,6 +36,7 @@ class LayerCopyManager {
       }
     }).toList();
   }
+
   /// Copy a layer to create a new instance of the same type.
   ///
   /// This method takes a [layer] as input and creates a new instance of the

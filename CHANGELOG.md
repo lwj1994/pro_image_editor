@@ -1,5 +1,8 @@
 # Changelog
 
+## 11.20.2
+- **FIX**(layer-copy): Implemented deep copy for layer `meta` and `textStyle` to prevent shared state between copied layers.
+
 ## 11.20.1
 - **FIX**(main-editor): Fixed coordinate offset issues when toolbars are hidden or in `contentOnly` mode. 
 - **REFACTOR**(main-editor): Standardized the coordinate system to use `center` by default and removed the `coordinateOrigin` configuration to simplify layer positioning and ensure consistency across all modes.

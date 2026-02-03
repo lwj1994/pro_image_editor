@@ -10,6 +10,32 @@ import '/core/models/layers/layer.dart';
 /// instances of the same type. It supports various types of layers, including
 /// text, emoji, paint, and sticker layers.
 class LayerCopyManager {
+  /// Deep copies a map by recursively copying all nested maps and lists.
+  static Map<String, dynamic>? _deepCopyMap(Map<String, dynamic>? map) {
+    if (map == null) return null;
+    return map.map((key, value) {
+      if (value is Map<String, dynamic>) {
+        return MapEntry(key, _deepCopyMap(value));
+      } else if (value is List) {
+        return MapEntry(key, _deepCopyList(value));
+      } else {
+        return MapEntry(key, value);
+      }
+    });
+  }
+
+  /// Deep copies a list by recursively copying all nested maps and lists.
+  static List<dynamic> _deepCopyList(List<dynamic> list) {
+    return list.map((item) {
+      if (item is Map<String, dynamic>) {
+        return _deepCopyMap(item);
+      } else if (item is List) {
+        return _deepCopyList(item);
+      } else {
+        return item;
+      }
+    }).toList();
+  }
   /// Copy a layer to create a new instance of the same type.
   ///
   /// This method takes a [layer] as input and creates a new instance of the
@@ -128,11 +154,11 @@ class LayerCopyManager {
         layer.offset.dy + offset.dy,
       ),
       rotation: layer.rotation,
-      textStyle: layer.textStyle,
+      textStyle: layer.textStyle?.copyWith(),
       scale: layer.scale,
       flipX: layer.flipX,
       flipY: layer.flipY,
-      meta: layer.meta,
+      meta: _deepCopyMap(layer.meta),
       maxTextWidth: layer.maxTextWidth,
       customSecondaryColor: layer.customSecondaryColor,
       interaction: layer.interaction.copyWith(),
@@ -159,7 +185,7 @@ class LayerCopyManager {
       scale: layer.scale,
       flipX: layer.flipX,
       flipY: layer.flipY,
-      meta: layer.meta,
+      meta: _deepCopyMap(layer.meta),
       interaction: layer.interaction.copyWith(),
       boxConstraints: layer.boxConstraints?.copyWith(),
     )..groupId = layer.groupId;
@@ -184,11 +210,13 @@ class LayerCopyManager {
       scale: layer.scale,
       flipX: layer.flipX,
       flipY: layer.flipY,
-      meta: layer.meta,
+      meta: _deepCopyMap(layer.meta),
       width: layer.width,
       interaction: layer.interaction.copyWith(),
       boxConstraints: layer.boxConstraints?.copyWith(),
-      exportConfigs: layer.exportConfigs.copyWith(),
+      exportConfigs: layer.exportConfigs.copyWith(
+        meta: _deepCopyMap(layer.exportConfigs.meta),
+      ),
     )..groupId = layer.groupId;
   }
 
@@ -210,7 +238,7 @@ class LayerCopyManager {
       scale: layer.scale,
       flipX: layer.flipX,
       flipY: layer.flipY,
-      meta: layer.meta,
+      meta: _deepCopyMap(layer.meta),
       item: layer.item.copy(),
       rawSize: layer.rawSize,
       opacity: layer.opacity,

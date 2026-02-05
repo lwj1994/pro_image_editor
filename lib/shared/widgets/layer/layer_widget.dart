@@ -127,6 +127,24 @@ class _LayerWidgetState extends State<LayerWidget>
   bool get _enableVisibleOverlay =>
       _layerInteractionManager?.layersAreSelectable(widget.configs) ?? false;
 
+  /// Determines whether gesture interactions should be blocked for this layer.
+  ///
+  /// Returns true if:
+  /// - [focusInteractionOnSelectedLayer] is enabled in config
+  /// - There are selected layers in the editor
+  /// - This layer is NOT one of the selected layers
+  bool get _shouldBlockGesturesForFocus {
+    final focusEnabled =
+        configs.layerInteraction.focusInteractionOnSelectedLayer;
+    if (!focusEnabled) return false;
+
+    final hasSelectedLayers =
+        _layerInteractionManager?.hasSelectedLayers ?? false;
+    if (!hasSelectedLayers) return false;
+
+    return !_isSelected;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -342,14 +360,19 @@ class _LayerWidgetState extends State<LayerWidget>
 
   Widget _buildInteractionHandlers() {
     var interaction = _layer.interaction;
+
+    // Block gestures if focusInteractionOnSelectedLayer is enabled and
+    // this layer is not selected while other layers are selected.
+    final shouldIgnore = _shouldBlockGesturesForFocus ||
+        !(interaction.enableSelection || interaction.enableEdit);
+
     return LayerInteractionHelperWidget(
       layer: _layer,
       configs: configs,
       callbacks: callbacks,
       selected: _isSelected,
       onEditLayer: () => _layersService?.handleEditTap(_layer),
-      forceIgnoreGestures:
-          !(interaction.enableSelection || interaction.enableEdit),
+      forceIgnoreGestures: shouldIgnore,
       isInteractive: widget.isInteractive,
       enableVisibleOverlay: _enableVisibleOverlay,
       onScaleRotateDown: (details) => _layersService?.handleScaleRotateDown(

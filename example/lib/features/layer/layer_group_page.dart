@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '/features/layer/focus_layer_interaction_example.dart';
 import '/features/layer/layer_grouping_example.dart';
 import '/features/layer/layer_select_design_example.dart';
 import '/features/layer/selectable_layer_example.dart';
@@ -41,6 +42,13 @@ class _LayerGroupPageState extends State<LayerGroupPage> {
             title: const Text('Always-Selectable'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _openExample(const SelectableLayerExample()),
+          ),
+          ListTile(
+            leading: const Icon(Icons.center_focus_strong_outlined),
+            title: const Text('Focus Layer Interaction'),
+            subtitle: const Text('Block other layers when one is selected'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openExample(const FocusLayerInteractionExample()),
           ),
         ],
       ),

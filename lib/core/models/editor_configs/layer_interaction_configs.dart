@@ -25,6 +25,7 @@ class LayerInteractionConfigs {
     this.enableLayerDragSelection = true,
     this.enableMobilePinchScale = true,
     this.enableMobilePinchRotate = true,
+    this.focusInteractionOnSelectedLayer = false,
     this.mouseButtonPrimaryAction = MouseButtonAction.selectOrSpaceMove,
     this.mouseButtonSecondaryAction = MouseButtonAction.pan,
     this.mouseButtonMiddleAction = MouseButtonAction.pan,
@@ -94,6 +95,15 @@ class LayerInteractionConfigs {
   /// platform (Windows, macOS, or Linux).
   final bool enableLayerDragSelection;
 
+  /// When enabled, selecting a layer will block gesture interactions
+  /// (move, scale, rotate) on all other non-selected layers.
+  ///
+  /// This is useful when you want to prevent accidental interactions
+  /// with other layers while focusing on a specific layer.
+  ///
+  /// Defaults to `false`.
+  final bool focusInteractionOnSelectedLayer;
+
   /// The duration of the switch animation when the video controls show/hide.
   final Duration videoControlsSwitchDuration;
 
@@ -134,6 +144,7 @@ class LayerInteractionConfigs {
     bool? enableKeyboardMultiSelection,
     bool? enableLongPressMultiSelection,
     bool? enableLayerDragSelection,
+    bool? focusInteractionOnSelectedLayer,
     Duration? videoControlsSwitchDuration,
     LayerInteractionIcons? icons,
     LayerInteractionWidgets? widgets,
@@ -161,6 +172,8 @@ class LayerInteractionConfigs {
           enableLongPressMultiSelection ?? this.enableLongPressMultiSelection,
       enableLayerDragSelection:
           enableLayerDragSelection ?? this.enableLayerDragSelection,
+      focusInteractionOnSelectedLayer: focusInteractionOnSelectedLayer ??
+          this.focusInteractionOnSelectedLayer,
       videoControlsSwitchDuration:
           videoControlsSwitchDuration ?? this.videoControlsSwitchDuration,
       icons: icons ?? this.icons,

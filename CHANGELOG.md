@@ -1,5 +1,17 @@
 # Changelog
 
+## 11.21.0
+- **FEAT**(layer-interaction): Add `focusInteractionOnSelectedLayer` option to `LayerInteractionConfigs`.
+  - When enabled, selecting a layer will block gesture interactions (move, scale, rotate) on all other non-selected layers.
+  - Useful for preventing accidental interactions with other layers while focusing on a specific layer.
+  - Default: `false`
+  - Example:
+    ```dart
+    LayerInteractionConfigs(
+      focusInteractionOnSelectedLayer: true,
+    )
+    ```
+
 ## 11.20.2
 - **FIX**(layer-copy): Implemented deep copy for layer `meta` and `textStyle` to prevent shared state between copied layers.
 

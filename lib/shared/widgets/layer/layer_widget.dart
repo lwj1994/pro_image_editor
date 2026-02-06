@@ -381,18 +381,15 @@ class _LayerWidgetState extends State<LayerWidget>
           valueListenable: _lastHitState,
           builder: (_, __, ___) {
             return GestureDetector(
-              behavior: HitTestBehavior.translucent,
+              behavior: isFocusBlocked
+                  ? HitTestBehavior.deferToChild
+                  : HitTestBehavior.translucent,
               onTap: isFocusBlocked ? () {} : null,
-              onScaleStart: isFocusBlocked
-                  ? (details) {
-                      _longPressTimer?.cancel();
-                    }
-                  : null,
-              onScaleUpdate: isFocusBlocked ? (details) {} : null,
-              onScaleEnd: isFocusBlocked ? (details) {} : null,
               onSecondaryTapUp: isDesktop ? _onSecondaryTapUp : null,
               child: Listener(
-                behavior: HitTestBehavior.translucent,
+                behavior: isFocusBlocked
+                    ? HitTestBehavior.deferToChild
+                    : HitTestBehavior.translucent,
                 onPointerDown: _onPointerDown,
                 onPointerMove: (event) {
                   if (_lastDownEvent != null &&

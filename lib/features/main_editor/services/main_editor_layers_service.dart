@@ -208,17 +208,23 @@ class MainEditorLayersService {
     /// selected when the pointer goes down.
     if (layer.interaction.enableSelection) {
       bool isAlreadySelected = selectedIds.contains(layer.id);
+      bool shouldBypassSelection =
+          _layerInteractionConfigs.focusInteractionOnSelectedLayer &&
+              selectedIds.isNotEmpty &&
+              !isAlreadySelected;
 
-      if (!isAlreadySelected && (selectedIds.isEmpty || _enableMultiSelect)) {
-        _helperIsPointerDownSelected = true;
-        layerInteraction.addSelectedLayer(layer.id);
-      } else if (!isAlreadySelected && !_enableMultiSelect) {
-        _helperIsPointerDownSelected = true;
-        layerInteraction
-          ..clearSelectedLayers()
-          ..addSelectedLayer(layer.id);
+      if (!shouldBypassSelection) {
+        if (!isAlreadySelected && (selectedIds.isEmpty || _enableMultiSelect)) {
+          _helperIsPointerDownSelected = true;
+          layerInteraction.addSelectedLayer(layer.id);
+        } else if (!isAlreadySelected && !_enableMultiSelect) {
+          _helperIsPointerDownSelected = true;
+          layerInteraction
+            ..clearSelectedLayers()
+            ..addSelectedLayer(layer.id);
+        }
+        _selectGroup(layer);
       }
-      _selectGroup(layer);
     }
 
     onCheckInteractiveViewer();
@@ -347,7 +353,13 @@ class MainEditorLayersService {
     bool areLayersSelectable = false,
     bool isSelected = false,
   }) {
+    bool shouldBypass =
+        _layerInteractionConfigs.focusInteractionOnSelectedLayer &&
+            layerInteraction.selectedLayerIds.isNotEmpty &&
+            !isSelected;
+
     if (!areLayersSelectable ||
+        shouldBypass ||
         !_layerInteractionConfigs.enableLongPressMultiSelection ||
         mouseService.validatePanAction()) {
       return;

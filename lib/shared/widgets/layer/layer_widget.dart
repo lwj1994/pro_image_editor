@@ -124,15 +124,6 @@ class _LayerWidgetState extends State<LayerWidget>
   /// origin configuration.
   double get offsetY => _layer.offset.dy + _halfBodySize.height;
 
-  bool get _enableVisibleOverlay =>
-      _layerInteractionManager?.layersAreSelectable(widget.configs) ?? false;
-
-  /// Determines whether gesture interactions should be blocked for this layer.
-  ///
-  /// Returns true if:
-  /// - [focusInteractionOnSelectedLayer] is enabled in config
-  /// - There are selected layers in the editor
-  /// - This layer is NOT one of the selected layers
   bool get _shouldBlockGesturesForFocus {
     final focusEnabled =
         configs.layerInteraction.focusInteractionOnSelectedLayer;
@@ -144,6 +135,9 @@ class _LayerWidgetState extends State<LayerWidget>
 
     return !_isSelected;
   }
+
+  bool get _enableVisibleOverlay =>
+      _layerInteractionManager?.layersAreSelectable(widget.configs) ?? false;
 
   @override
   void initState() {
@@ -359,11 +353,9 @@ class _LayerWidgetState extends State<LayerWidget>
   }
 
   Widget _buildInteractionHandlers() {
-    var interaction = _layer.interaction;
-
-    // Block gestures if focusInteractionOnSelectedLayer is enabled and
-    // this layer is not selected while other layers are selected.
-    final shouldIgnore = _shouldBlockGesturesForFocus ||
+    final interaction = _layer.interaction;
+    final isFocusBlocked = _shouldBlockGesturesForFocus;
+    final shouldIgnore =
         !(interaction.enableSelection || interaction.enableEdit);
 
     return LayerInteractionHelperWidget(
@@ -390,10 +382,25 @@ class _LayerWidgetState extends State<LayerWidget>
           builder: (_, __, ___) {
             return GestureDetector(
               behavior: HitTestBehavior.translucent,
+              onTap: isFocusBlocked ? () {} : null,
+              onScaleStart: isFocusBlocked
+                  ? (details) {
+                      _longPressTimer?.cancel();
+                    }
+                  : null,
+              onScaleUpdate: isFocusBlocked ? (details) {} : null,
+              onScaleEnd: isFocusBlocked ? (details) {} : null,
               onSecondaryTapUp: isDesktop ? _onSecondaryTapUp : null,
               child: Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: _onPointerDown,
+                onPointerMove: (event) {
+                  if (_lastDownEvent != null &&
+                      (event.position - _lastDownEvent!.position).distance >
+                          tapSlop) {
+                    _longPressTimer?.cancel();
+                  }
+                },
                 onPointerUp: _onPointerUp,
                 child: Padding(
                   padding: !_isSelected

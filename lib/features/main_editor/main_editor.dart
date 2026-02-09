@@ -1267,6 +1267,8 @@ class ProImageEditorState extends State<ProImageEditor>
         selectedLayers: selectedLayers,
         layerList: activeLayers,
         context: context,
+        editorSize: sizesManager.bodySize,
+        canvasSize: sizesManager.decodedImageSize,
         detail: details,
         onHoveredRemoveChanged: (value) {
           _controllers.removeBtnCtrl.add(null);

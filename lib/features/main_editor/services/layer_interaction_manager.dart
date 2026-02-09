@@ -105,6 +105,12 @@ class LayerInteractionManager {
   /// Offset of the vertical alignment line relative to the editor center.
   Offset verticalGuideOffset = Offset.zero;
 
+  /// Whether to show the padding highlight overlay for the active layer.
+  bool showPaddingHighlight = false;
+
+  /// The padding highlight rectangles in editor-local coordinates.
+  List<Rect> paddingHighlightRects = const [];
+
   /// Flag indicating if rotation helper lines have started.
   bool _rotationStartedHelper = false;
 
@@ -437,6 +443,8 @@ class LayerInteractionManager {
     _rotateScaleButtonStartPosition = null;
     _rotationStartedHelper = false;
     showHelperLines = true;
+    showPaddingHighlight = false;
+    paddingHighlightRects = const [];
   }
 
   Offset _getFractionalLayerOffset(Layer layer) {
@@ -573,6 +581,8 @@ class LayerInteractionManager {
     required ScaleUpdateDetails detail,
     required List<Layer> selectedLayers,
     required List<Layer> layerList,
+    required Size editorSize,
+    required Size canvasSize,
     required GlobalKey removeAreaKey,
     required Function(bool value) onHoveredRemoveChanged,
     required StreamController<void> helperLineCtrl,
@@ -586,6 +596,13 @@ class LayerInteractionManager {
     );
 
     bool hasMultiSelection = selectedLayers.length > 1;
+    Layer? highlightLayer =
+        selectedLayers.length == 1 ? selectedLayers.first : null;
+    if (highlightLayer == null && showPaddingHighlight) {
+      showPaddingHighlight = false;
+      paddingHighlightRects = const [];
+      helperLineCtrl.add(null);
+    }
     if (!layerWasTransformed) {
       layerWasTransformed = selectedLayers.isNotEmpty;
     }
@@ -688,6 +705,17 @@ class LayerInteractionManager {
         }
       }
     }
+
+    if (highlightLayer != null) {
+      _updatePaddingHighlight(
+        activeLayer: highlightLayer,
+        layerList: layerList,
+        editorSize: editorSize,
+        canvasSize: canvasSize,
+        editorScaleFactor: editorScaleFactor,
+        helperLineCtrl: helperLineCtrl,
+      );
+    }
   }
 
   void _checkLayerHoverRemoveArea({
@@ -722,6 +750,8 @@ class LayerInteractionManager {
     required EdgeInsets screenPaddingHelper,
   }) {
     _activeScale = true;
+    showPaddingHighlight = false;
+    paddingHighlightRects = const [];
     bool enableMobilePinchScale =
         configs.layerInteraction.enableMobilePinchScale;
     bool enableMobilePinchRotate =
@@ -866,6 +896,8 @@ class LayerInteractionManager {
     isVerticalGuideVisible = false;
     isHorizontalGuideVisible = false;
     showHelperLines = false;
+    showPaddingHighlight = false;
+    paddingHighlightRects = const [];
     hoverRemoveBtn = false;
   }
 
@@ -1135,6 +1167,380 @@ class LayerInteractionManager {
         helperLinesCallbacks?.handleLayerAlignLineHit();
       }
     }
+  }
+
+  void _updatePaddingHighlight({
+    required Layer activeLayer,
+    required List<Layer> layerList,
+    required Size editorSize,
+    required Size canvasSize,
+    required double editorScaleFactor,
+    required StreamController<void> helperLineCtrl,
+  }) {
+    if (!helperLineConfigs.showPaddingAlignHighlight) {
+      if (showPaddingHighlight) {
+        showPaddingHighlight = false;
+        paddingHighlightRects = const [];
+        helperLineCtrl.add(null);
+      }
+      return;
+    }
+
+    Rect activeRect = _getLayerBounds(
+      activeLayer,
+      _getFractionalLayerOffset(activeLayer),
+      EdgeInsets.zero,
+    );
+
+    if (activeRect == Rect.zero) {
+      if (showPaddingHighlight) {
+        showPaddingHighlight = false;
+        paddingHighlightRects = const [];
+        helperLineCtrl.add(null);
+      }
+      return;
+    }
+
+    final fallbackCanvasSize =
+        canvasSize.isEmpty ? editorSize : canvasSize;
+    final canvasRect = Rect.fromLTWH(
+      -fallbackCanvasSize.width / 2,
+      -fallbackCanvasSize.height / 2,
+      fallbackCanvasSize.width,
+      fallbackCanvasSize.height,
+    );
+
+    const baseThreshold = 12.0;
+    final threshold = baseThreshold / editorScaleFactor;
+
+    Rect? bestRefX;
+    double bestDiffX = double.infinity;
+    double bestGapX = 0;
+    bool bestAlignLeft = true;
+    bool bestMarginLeftX = true;
+
+    Rect? bestRefY;
+    double bestDiffY = double.infinity;
+    double bestGapY = 0;
+    bool bestAlignTop = true;
+    bool bestMarginTopY = true;
+
+    for (final layer in layerList) {
+      if (layer == activeLayer) continue;
+
+      final aRect = _getLayerBounds(
+        layer,
+        _getFractionalLayerOffset(layer),
+        EdgeInsets.zero,
+      );
+
+      if (aRect == Rect.zero) continue;
+
+      final gapLeft = aRect.left - canvasRect.left;
+      final gapRight = canvasRect.right - aRect.right;
+
+      void considerX({
+        required double margin,
+        required bool marginIsLeft,
+        required bool activeOnRight,
+      }) {
+        if (margin < 0) return;
+
+        final targetX =
+            activeOnRight ? aRect.right + margin : aRect.left - margin;
+        final diff = (activeOnRight
+                ? activeRect.left - targetX
+                : activeRect.right - targetX)
+            .abs();
+
+        if (diff <= threshold && diff < bestDiffX) {
+          bestDiffX = diff;
+          bestRefX = aRect;
+          bestGapX = margin;
+          bestAlignLeft = activeOnRight;
+          bestMarginLeftX = marginIsLeft;
+        }
+      }
+
+      considerX(
+        margin: gapLeft,
+        marginIsLeft: true,
+        activeOnRight: true,
+      );
+      considerX(
+        margin: gapLeft,
+        marginIsLeft: true,
+        activeOnRight: false,
+      );
+      considerX(
+        margin: gapRight,
+        marginIsLeft: false,
+        activeOnRight: true,
+      );
+      considerX(
+        margin: gapRight,
+        marginIsLeft: false,
+        activeOnRight: false,
+      );
+
+      final gapTop = aRect.top - canvasRect.top;
+      final gapBottom = canvasRect.bottom - aRect.bottom;
+
+      void considerY({
+        required double margin,
+        required bool marginIsTop,
+        required bool activeBelow,
+      }) {
+        if (margin < 0) return;
+
+        final targetY =
+            activeBelow ? aRect.bottom + margin : aRect.top - margin;
+        final diff = (activeBelow
+                ? activeRect.top - targetY
+                : activeRect.bottom - targetY)
+            .abs();
+
+        if (diff <= threshold && diff < bestDiffY) {
+          bestDiffY = diff;
+          bestRefY = aRect;
+          bestGapY = margin;
+          bestAlignTop = activeBelow;
+          bestMarginTopY = marginIsTop;
+        }
+      }
+
+      considerY(
+        margin: gapTop,
+        marginIsTop: true,
+        activeBelow: true,
+      );
+      considerY(
+        margin: gapTop,
+        marginIsTop: true,
+        activeBelow: false,
+      );
+      considerY(
+        margin: gapBottom,
+        marginIsTop: false,
+        activeBelow: true,
+      );
+      considerY(
+        margin: gapBottom,
+        marginIsTop: false,
+        activeBelow: false,
+      );
+    }
+
+    if (bestRefX == null && bestRefY == null) {
+      if (showPaddingHighlight) {
+        showPaddingHighlight = false;
+        paddingHighlightRects = const [];
+        helperLineCtrl.add(null);
+      }
+      return;
+    }
+
+    final lineWidth = max(1.5 / editorScaleFactor, 0.5 / editorScaleFactor);
+    final rects = <Rect>[];
+
+    if (bestRefX != null) {
+      final refX = bestRefX!;
+      final targetX = bestAlignLeft
+          ? refX.right + bestGapX
+          : refX.left - bestGapX;
+      final deltaX = bestAlignLeft
+          ? targetX - activeRect.left
+          : targetX - activeRect.right;
+
+      if (deltaX.abs() > 0) {
+        activeLayer.offset = Offset(
+          activeLayer.offset.dx + deltaX,
+          activeLayer.offset.dy,
+        );
+        activeRect = activeRect.shift(Offset(deltaX, 0));
+      }
+
+      if (bestMarginLeftX) {
+        rects.add(
+          Rect.fromLTRB(
+            canvasRect.left,
+            refX.top,
+            refX.left,
+            refX.bottom,
+          ),
+        );
+      } else {
+        rects.add(
+          Rect.fromLTRB(
+            refX.right,
+            refX.top,
+            canvasRect.right,
+            refX.bottom,
+          ),
+        );
+      }
+
+      final gapLeft = bestAlignLeft ? refX.right : activeRect.right;
+      final gapRight = bestAlignLeft ? activeRect.left : refX.left;
+      rects
+        ..add(
+          Rect.fromLTRB(
+            gapLeft,
+            activeRect.top,
+            gapRight,
+            activeRect.bottom,
+          ),
+        )
+        ..add(
+          Rect.fromLTRB(
+            targetX - lineWidth / 2,
+            activeRect.top,
+            targetX + lineWidth / 2,
+            activeRect.bottom,
+          ),
+        );
+    }
+
+    if (bestRefY != null) {
+      final refY = bestRefY!;
+      final targetY =
+          bestAlignTop ? refY.bottom + bestGapY : refY.top - bestGapY;
+      final deltaY = bestAlignTop
+          ? targetY - activeRect.top
+          : targetY - activeRect.bottom;
+
+      if (deltaY.abs() > 0) {
+        activeLayer.offset = Offset(
+          activeLayer.offset.dx,
+          activeLayer.offset.dy + deltaY,
+        );
+        activeRect = activeRect.shift(Offset(0, deltaY));
+      }
+
+      if (bestMarginTopY) {
+        rects.add(
+          Rect.fromLTRB(
+            refY.left,
+            canvasRect.top,
+            refY.right,
+            refY.top,
+          ),
+        );
+      } else {
+        rects.add(
+          Rect.fromLTRB(
+            refY.left,
+            refY.bottom,
+            refY.right,
+            canvasRect.bottom,
+          ),
+        );
+      }
+
+      final gapTop = bestAlignTop ? refY.bottom : activeRect.bottom;
+      final gapBottom = bestAlignTop ? activeRect.top : refY.top;
+      rects
+        ..add(
+          Rect.fromLTRB(
+            activeRect.left,
+            gapTop,
+            activeRect.right,
+            gapBottom,
+          ),
+        )
+        ..add(
+          Rect.fromLTRB(
+            activeRect.left,
+            targetY - lineWidth / 2,
+            activeRect.right,
+            targetY + lineWidth / 2,
+          ),
+        );
+    }
+
+    final filtered = rects
+        .where((rect) => rect.width > 0 && rect.height > 0)
+        .toList();
+
+    final bool hasChanged =
+        showPaddingHighlight != filtered.isNotEmpty ||
+            !_rectListEquals(paddingHighlightRects, filtered);
+
+    showPaddingHighlight = filtered.isNotEmpty;
+    paddingHighlightRects = filtered;
+
+    if (hasChanged) {
+      helperLineCtrl.add(null);
+    }
+  }
+
+  bool _rectListEquals(List<Rect> a, List<Rect> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  Rect _getLayerBounds(
+    Layer layer,
+    Offset fractionalOffset,
+    EdgeInsets overlayPadding,
+  ) {
+    final renderBox = layer.keyInternalSize.currentContext?.findRenderObject();
+    if (renderBox is! RenderBox || !renderBox.hasSize) {
+      return Rect.zero;
+    }
+
+    final size = renderBox.size;
+    if (size.isEmpty) return Rect.zero;
+
+    final center = layer.computeOffsetFromCenterFraction(fractionalOffset);
+    final hw = size.width / 2;
+    final hh = size.height / 2;
+
+    final left = -hw - overlayPadding.left;
+    final top = -hh - overlayPadding.top;
+    final right = hw + overlayPadding.right;
+    final bottom = hh + overlayPadding.bottom;
+
+    final corners = <Offset>[
+      Offset(left, top),
+      Offset(right, top),
+      Offset(right, bottom),
+      Offset(left, bottom),
+    ];
+
+    final cosR = cos(layer.rotation);
+    final sinR = sin(layer.rotation);
+
+    var minX = double.infinity;
+    var minY = double.infinity;
+    var maxX = -double.infinity;
+    var maxY = -double.infinity;
+
+    for (final corner in corners) {
+      final rotated = Offset(
+        corner.dx * cosR - corner.dy * sinR,
+        corner.dx * sinR + corner.dy * cosR,
+      );
+      final point = center + rotated;
+
+      if (point.dx < minX) minX = point.dx;
+      if (point.dy < minY) minY = point.dy;
+      if (point.dx > maxX) maxX = point.dx;
+      if (point.dy > maxY) maxY = point.dy;
+    }
+
+    if (minX == double.infinity ||
+        minY == double.infinity ||
+        maxX == -double.infinity ||
+        maxY == -double.infinity) {
+      return Rect.zero;
+    }
+
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
   }
 }
 

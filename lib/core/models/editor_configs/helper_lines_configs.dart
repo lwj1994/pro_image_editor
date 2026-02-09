@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import '../styles/helper_line_style.dart';
 
 export '../styles/helper_line_style.dart';
@@ -13,8 +15,10 @@ class HelperLineConfigs {
     this.showHorizontalLine = true,
     this.showRotateLine = true,
     this.showLayerAlignLine = true,
+    this.showPaddingAlignHighlight = true,
     this.isDisabledAtZoom = false,
     this.releaseThreshold = 10.0,
+    this.paddingAlignHighlightColor,
     this.style = const HelperLineStyle(),
   });
 
@@ -30,6 +34,9 @@ class HelperLineConfigs {
   /// Specifies whether to show the layer align helper line.
   final bool showLayerAlignLine;
 
+  /// Specifies whether to show padding align highlights for equal spacing.
+  final bool showPaddingAlignHighlight;
+
   /// Determines whether the helper lines are disabled when the editor is
   /// zoomed in.
   ///
@@ -41,6 +48,11 @@ class HelperLineConfigs {
 
   /// Style configuration for helper lines.
   final HelperLineStyle style;
+
+  /// Optional color override for padding align highlights.
+  ///
+  /// If null, the color falls back to [style.layerAlignColor] with opacity.
+  final Color? paddingAlignHighlightColor;
 
   /// The minimum distance in logical pixels that a draggable element must be
   /// released from a helper line for the snapping effect to be deactivated.
@@ -57,8 +69,10 @@ class HelperLineConfigs {
     bool? showHorizontalLine,
     bool? showRotateLine,
     bool? showLayerAlignLine,
+    bool? showPaddingAlignHighlight,
     bool? isDisabledAtZoom,
     double? releaseThreshold,
+    Color? paddingAlignHighlightColor,
     HelperLineStyle? style,
   }) {
     return HelperLineConfigs(
@@ -66,8 +80,12 @@ class HelperLineConfigs {
       showHorizontalLine: showHorizontalLine ?? this.showHorizontalLine,
       showRotateLine: showRotateLine ?? this.showRotateLine,
       showLayerAlignLine: showLayerAlignLine ?? this.showLayerAlignLine,
+      showPaddingAlignHighlight:
+          showPaddingAlignHighlight ?? this.showPaddingAlignHighlight,
       isDisabledAtZoom: isDisabledAtZoom ?? this.isDisabledAtZoom,
       releaseThreshold: releaseThreshold ?? this.releaseThreshold,
+      paddingAlignHighlightColor:
+          paddingAlignHighlightColor ?? this.paddingAlignHighlightColor,
       style: style ?? this.style,
     );
   }

@@ -53,7 +53,8 @@ class MainEditorHelperLines extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!layerInteractionManager.showHelperLines) {
+    if (!layerInteractionManager.showHelperLines &&
+        !layerInteractionManager.showPaddingHighlight) {
       return const SizedBox.shrink();
     }
 
@@ -81,6 +82,16 @@ class MainEditorHelperLines extends StatelessWidget {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
+                      if (layerInteractionManager.showPaddingHighlight &&
+                          helperLines.showPaddingAlignHighlight &&
+                          !_isLayerInRemovalZone)
+                        ..._buildPaddingHighlights(
+                          scale,
+                          editorBodySize,
+                          helperLines.paddingAlignHighlightColor ??
+                              helperLines.style.layerAlignColor
+                                  .withValues(alpha: 0.25),
+                        ),
                       if (helperLines.showVerticalLine)
                         _buildLine(
                           key: const ValueKey('Screen-Vertical-Guide-Line'),
@@ -125,6 +136,43 @@ class MainEditorHelperLines extends StatelessWidget {
             );
           }),
     );
+  }
+
+  List<Widget> _buildPaddingHighlights(
+    double scale,
+    Size editorBodySize,
+    Color color,
+  ) {
+    if (layerInteractionManager.paddingHighlightRects.isEmpty) {
+      return const [];
+    }
+
+    final center = editorBodySize / 2;
+    final widgets = <Widget>[];
+
+    for (final rect in layerInteractionManager.paddingHighlightRects) {
+      final width = rect.width * scale;
+      final height = rect.height * scale;
+      if (width <= 0 || height <= 0) continue;
+
+      widgets.add(
+        Positioned(
+          left: (center.width + rect.left) * scale,
+          top: (center.height + rect.top) * scale,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: _duration),
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return widgets;
   }
 
   Widget _buildLine({

@@ -1,5 +1,12 @@
 # Changelog
 
+## 11.21.1
+- **FEAT**(layer-interaction): Add equal-spacing snap + padding highlight guides when dragging layers.
+  - Highlights margin and target guides for X/Y axes (left/right/top/bottom).
+  - Snaps to matching spacing relative to canvas edges and other layers.
+  - New configs: `HelperLineConfigs.showPaddingAlignHighlight` and
+    `HelperLineConfigs.paddingAlignHighlightColor`.
+
 ## 11.21.0
 - **FEAT**(layer-interaction): Add `focusInteractionOnSelectedLayer` option to `LayerInteractionConfigs`.
   - When enabled, selecting a layer will block gesture interactions (move, scale, rotate) on all other non-selected layers.

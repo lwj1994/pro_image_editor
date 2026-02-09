@@ -147,7 +147,22 @@ class MainEditorHelperLines extends StatelessWidget {
       return const [];
     }
 
-    final center = editorBodySize / 2;
+    final canvasSize = sizesManager.decodedImageSize;
+    final effectiveCanvasSize =
+        canvasSize.isEmpty ? editorBodySize : canvasSize;
+    final alignment = configs.mainEditor.canvasAlignment.toAlignment();
+    final canvasOffset = Offset(
+      (editorBodySize.width - effectiveCanvasSize.width) *
+          (alignment.x + 1) /
+          2,
+      (editorBodySize.height - effectiveCanvasSize.height) *
+          (alignment.y + 1) /
+          2,
+    );
+    final center = Offset(
+      canvasOffset.dx + effectiveCanvasSize.width / 2,
+      canvasOffset.dy + effectiveCanvasSize.height / 2,
+    );
     final widgets = <Widget>[];
 
     for (final rect in layerInteractionManager.paddingHighlightRects) {
@@ -157,8 +172,8 @@ class MainEditorHelperLines extends StatelessWidget {
 
       widgets.add(
         Positioned(
-          left: (center.width + rect.left) * scale,
-          top: (center.height + rect.top) * scale,
+          left: (center.dx + rect.left) * scale,
+          top: (center.dy + rect.top) * scale,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: _duration),
             width: width,

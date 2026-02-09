@@ -6,7 +6,9 @@
       "Bash(git tag:*)",
       "Bash(git push:*)",
       "Bash(git commit:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(flutter run:*)",
+      "Bash(find:*)"
     ]
   }
 }

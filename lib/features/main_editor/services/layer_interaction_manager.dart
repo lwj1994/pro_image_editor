@@ -111,6 +111,20 @@ class LayerInteractionManager {
   /// The padding highlight rectangles in editor-local coordinates.
   List<Rect> paddingHighlightRects = const [];
 
+  String? _paddingSnapLayerId;
+  double? _paddingSnapStartFocalX;
+  double? _paddingSnapStartFocalY;
+  Rect? _paddingSnapRefX;
+  double _paddingSnapGapX = 0;
+  bool _paddingSnapAlignLeft = true;
+  bool _paddingSnapMarginLeftX = true;
+  bool _paddingSnapReleasedX = false;
+  Rect? _paddingSnapRefY;
+  double _paddingSnapGapY = 0;
+  bool _paddingSnapAlignTop = true;
+  bool _paddingSnapMarginTopY = true;
+  bool _paddingSnapReleasedY = false;
+
   /// Flag indicating if rotation helper lines have started.
   bool _rotationStartedHelper = false;
 
@@ -445,6 +459,56 @@ class LayerInteractionManager {
     showHelperLines = true;
     showPaddingHighlight = false;
     paddingHighlightRects = const [];
+    _resetPaddingSnapState();
+  }
+
+  void _resetPaddingSnapX() {
+    _paddingSnapStartFocalX = null;
+    _paddingSnapRefX = null;
+    _paddingSnapGapX = 0;
+    _paddingSnapAlignLeft = true;
+    _paddingSnapMarginLeftX = true;
+    _paddingSnapReleasedX = false;
+  }
+
+  void _resetPaddingSnapY() {
+    _paddingSnapStartFocalY = null;
+    _paddingSnapRefY = null;
+    _paddingSnapGapY = 0;
+    _paddingSnapAlignTop = true;
+    _paddingSnapMarginTopY = true;
+    _paddingSnapReleasedY = false;
+  }
+
+  void _releasePaddingSnapX() {
+    _paddingSnapStartFocalX = null;
+    _paddingSnapRefX = null;
+    _paddingSnapGapX = 0;
+    _paddingSnapAlignLeft = true;
+    _paddingSnapMarginLeftX = true;
+    _paddingSnapReleasedX = true;
+  }
+
+  void _releasePaddingSnapY() {
+    _paddingSnapStartFocalY = null;
+    _paddingSnapRefY = null;
+    _paddingSnapGapY = 0;
+    _paddingSnapAlignTop = true;
+    _paddingSnapMarginTopY = true;
+    _paddingSnapReleasedY = true;
+  }
+
+  void _resetPaddingSnapState() {
+    _paddingSnapLayerId = null;
+    _resetPaddingSnapX();
+    _resetPaddingSnapY();
+  }
+
+  void _ensurePaddingSnapLayer(Layer activeLayer) {
+    if (_paddingSnapLayerId != activeLayer.id) {
+      _resetPaddingSnapState();
+      _paddingSnapLayerId = activeLayer.id;
+    }
   }
 
   Offset _getFractionalLayerOffset(Layer layer) {
@@ -601,6 +665,7 @@ class LayerInteractionManager {
     if (highlightLayer == null && showPaddingHighlight) {
       showPaddingHighlight = false;
       paddingHighlightRects = const [];
+      _resetPaddingSnapState();
       helperLineCtrl.add(null);
     }
     if (!layerWasTransformed) {
@@ -708,6 +773,7 @@ class LayerInteractionManager {
 
     if (highlightLayer != null) {
       _updatePaddingHighlight(
+        detail: detail,
         activeLayer: highlightLayer,
         layerList: layerList,
         editorSize: editorSize,
@@ -752,6 +818,7 @@ class LayerInteractionManager {
     _activeScale = true;
     showPaddingHighlight = false;
     paddingHighlightRects = const [];
+    _resetPaddingSnapState();
     bool enableMobilePinchScale =
         configs.layerInteraction.enableMobilePinchScale;
     bool enableMobilePinchRotate =
@@ -898,6 +965,7 @@ class LayerInteractionManager {
     showHelperLines = false;
     showPaddingHighlight = false;
     paddingHighlightRects = const [];
+    _resetPaddingSnapState();
     hoverRemoveBtn = false;
   }
 
@@ -1170,6 +1238,7 @@ class LayerInteractionManager {
   }
 
   void _updatePaddingHighlight({
+    required ScaleUpdateDetails detail,
     required Layer activeLayer,
     required List<Layer> layerList,
     required Size editorSize,
@@ -1183,8 +1252,11 @@ class LayerInteractionManager {
         paddingHighlightRects = const [];
         helperLineCtrl.add(null);
       }
+      _resetPaddingSnapState();
       return;
     }
+
+    _ensurePaddingSnapLayer(activeLayer);
 
     Rect activeRect = _getLayerBounds(
       activeLayer,
@@ -1198,6 +1270,7 @@ class LayerInteractionManager {
         paddingHighlightRects = const [];
         helperLineCtrl.add(null);
       }
+      _resetPaddingSnapState();
       return;
     }
 
@@ -1212,6 +1285,10 @@ class LayerInteractionManager {
 
     const baseThreshold = 12.0;
     final threshold = baseThreshold / editorScaleFactor;
+    final releaseThreshold = helperLineConfigs.releaseThreshold;
+
+    final allowSnapX = !showVerticalHelperLine && !isVerticalGuideVisible;
+    final allowSnapY = !showHorizontalHelperLine && !isHorizontalGuideVisible;
 
     Rect? bestRefX;
     double bestDiffX = double.infinity;
@@ -1227,6 +1304,7 @@ class LayerInteractionManager {
 
     for (final layer in layerList) {
       if (layer == activeLayer) continue;
+      if (!layer.interaction.enableMove) continue;
 
       final aRect = _getLayerBounds(
         layer,
@@ -1244,6 +1322,7 @@ class LayerInteractionManager {
         required bool marginIsLeft,
         required bool activeOnRight,
       }) {
+        if (!allowSnapX) return;
         if (margin < 0) return;
 
         final targetX =
@@ -1291,6 +1370,7 @@ class LayerInteractionManager {
         required bool marginIsTop,
         required bool activeBelow,
       }) {
+        if (!allowSnapY) return;
         if (margin < 0) return;
 
         final targetY =
@@ -1331,11 +1411,77 @@ class LayerInteractionManager {
       );
     }
 
-    if (bestRefX == null && bestRefY == null) {
+    if (_paddingSnapStartFocalX != null &&
+        (detail.focalPoint.dx - _paddingSnapStartFocalX!).abs() >
+            releaseThreshold) {
+      _releasePaddingSnapX();
+    }
+    if (_paddingSnapStartFocalY != null &&
+        (detail.focalPoint.dy - _paddingSnapStartFocalY!).abs() >
+            releaseThreshold) {
+      _releasePaddingSnapY();
+    }
+
+    if (!allowSnapX) {
+      _resetPaddingSnapX();
+      bestRefX = null;
+    }
+    if (!allowSnapY) {
+      _resetPaddingSnapY();
+      bestRefY = null;
+    }
+
+    if (_paddingSnapReleasedX && bestRefX == null) {
+      _paddingSnapReleasedX = false;
+    }
+    if (_paddingSnapReleasedY && bestRefY == null) {
+      _paddingSnapReleasedY = false;
+    }
+
+    if (_paddingSnapReleasedX) {
+      bestRefX = null;
+    }
+    if (_paddingSnapReleasedY) {
+      bestRefY = null;
+    }
+
+    if (_paddingSnapStartFocalX == null && bestRefX != null) {
+      _paddingSnapStartFocalX = detail.focalPoint.dx;
+      _paddingSnapRefX = bestRefX;
+      _paddingSnapGapX = bestGapX;
+      _paddingSnapAlignLeft = bestAlignLeft;
+      _paddingSnapMarginLeftX = bestMarginLeftX;
+    }
+    if (_paddingSnapStartFocalY == null && bestRefY != null) {
+      _paddingSnapStartFocalY = detail.focalPoint.dy;
+      _paddingSnapRefY = bestRefY;
+      _paddingSnapGapY = bestGapY;
+      _paddingSnapAlignTop = bestAlignTop;
+      _paddingSnapMarginTopY = bestMarginTopY;
+    }
+
+    final refX = _paddingSnapRefX ?? bestRefX;
+    final gapX = _paddingSnapRefX != null ? _paddingSnapGapX : bestGapX;
+    final alignLeft =
+        _paddingSnapRefX != null ? _paddingSnapAlignLeft : bestAlignLeft;
+    final marginLeftX =
+        _paddingSnapRefX != null ? _paddingSnapMarginLeftX : bestMarginLeftX;
+
+    final refY = _paddingSnapRefY ?? bestRefY;
+    final gapY = _paddingSnapRefY != null ? _paddingSnapGapY : bestGapY;
+    final alignTop =
+        _paddingSnapRefY != null ? _paddingSnapAlignTop : bestAlignTop;
+    final marginTopY =
+        _paddingSnapRefY != null ? _paddingSnapMarginTopY : bestMarginTopY;
+
+    if (refX == null && refY == null) {
       if (showPaddingHighlight) {
         showPaddingHighlight = false;
         paddingHighlightRects = const [];
         helperLineCtrl.add(null);
+      }
+      if (!_paddingSnapReleasedX && !_paddingSnapReleasedY) {
+        _resetPaddingSnapState();
       }
       return;
     }
@@ -1343,12 +1489,10 @@ class LayerInteractionManager {
     final lineWidth = max(1.5 / editorScaleFactor, 0.5 / editorScaleFactor);
     final rects = <Rect>[];
 
-    if (bestRefX != null) {
-      final refX = bestRefX!;
-      final targetX = bestAlignLeft
-          ? refX.right + bestGapX
-          : refX.left - bestGapX;
-      final deltaX = bestAlignLeft
+    if (refX != null) {
+      final targetX =
+          alignLeft ? refX.right + gapX : refX.left - gapX;
+      final deltaX = alignLeft
           ? targetX - activeRect.left
           : targetX - activeRect.right;
 
@@ -1360,7 +1504,7 @@ class LayerInteractionManager {
         activeRect = activeRect.shift(Offset(deltaX, 0));
       }
 
-      if (bestMarginLeftX) {
+      if (marginLeftX) {
         rects.add(
           Rect.fromLTRB(
             canvasRect.left,
@@ -1380,8 +1524,8 @@ class LayerInteractionManager {
         );
       }
 
-      final gapLeft = bestAlignLeft ? refX.right : activeRect.right;
-      final gapRight = bestAlignLeft ? activeRect.left : refX.left;
+      final gapLeft = alignLeft ? refX.right : activeRect.right;
+      final gapRight = alignLeft ? activeRect.left : refX.left;
       rects
         ..add(
           Rect.fromLTRB(
@@ -1401,11 +1545,10 @@ class LayerInteractionManager {
         );
     }
 
-    if (bestRefY != null) {
-      final refY = bestRefY!;
+    if (refY != null) {
       final targetY =
-          bestAlignTop ? refY.bottom + bestGapY : refY.top - bestGapY;
-      final deltaY = bestAlignTop
+          alignTop ? refY.bottom + gapY : refY.top - gapY;
+      final deltaY = alignTop
           ? targetY - activeRect.top
           : targetY - activeRect.bottom;
 
@@ -1417,7 +1560,7 @@ class LayerInteractionManager {
         activeRect = activeRect.shift(Offset(0, deltaY));
       }
 
-      if (bestMarginTopY) {
+      if (marginTopY) {
         rects.add(
           Rect.fromLTRB(
             refY.left,
@@ -1437,8 +1580,8 @@ class LayerInteractionManager {
         );
       }
 
-      final gapTop = bestAlignTop ? refY.bottom : activeRect.bottom;
-      final gapBottom = bestAlignTop ? activeRect.top : refY.top;
+      final gapTop = alignTop ? refY.bottom : activeRect.bottom;
+      final gapBottom = alignTop ? activeRect.top : refY.top;
       rects
         ..add(
           Rect.fromLTRB(
@@ -1497,8 +1640,10 @@ class LayerInteractionManager {
     if (size.isEmpty) return Rect.zero;
 
     final center = layer.computeOffsetFromCenterFraction(fractionalOffset);
-    final hw = size.width / 2;
-    final hh = size.height / 2;
+    final scale =
+        layer.isPaintLayer ? layer.scale.abs() : 1.0;
+    final hw = size.width * scale / 2;
+    final hh = size.height * scale / 2;
 
     final left = -hw - overlayPadding.left;
     final top = -hh - overlayPadding.top;

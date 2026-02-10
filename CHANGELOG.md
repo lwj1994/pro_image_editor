@@ -1,5 +1,11 @@
 # Changelog
 
+## 11.21.2
+- **FIX**(layer-interaction): Add release threshold handling for padding snap to avoid layers getting stuck.
+- **FIX**(layer-interaction): Prevent padding snap from competing with center and align guide snaps.
+- **FIX**(layer-interaction): Include paint layer scale in padding highlight bounds calculations.
+- **FIX**(main-editor): Align padding highlight rendering with editor body coordinates to avoid vertical offset.
+
 ## 11.21.1
 - **FEAT**(layer-interaction): Add equal-spacing snap + padding highlight guides when dragging layers.
   - Highlights margin and target guides for X/Y axes (left/right/top/bottom).

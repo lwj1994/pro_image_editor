@@ -1,5 +1,8 @@
 # Changelog
 
+## 11.22.1
+- **FIX**(callbacks): Fixed `onTap` callback coordinates to use center-based canvas coordinate system matching `layer.offset`, where `(0,0)` is the canvas center. Also accounts for `InteractiveViewer` zoom scale and offset.
+
 ## 11.22.0
 - **BREAKING** **FEAT**(callbacks): Enhanced `onTap` callback in `MainEditorCallbacks` to provide tap coordinates and the hit layer.
   - The signature changed from `Function()?` to `Function(Offset localPosition, Layer? layer)?`.

@@ -2667,8 +2667,22 @@ class ProImageEditorState extends State<ProImageEditor>
                     final tappedLayer = layerInteractionManager.lastTappedLayer;
                     layerInteractionManager.lastTappedLayer = null;
 
+                    // Transform raw pointer position
+                    // to center-based canvas coordinates
+                    // matching `layer.offset` system
+                    // where (0,0) is the canvas center.
+                    final scaleFactor =
+                        interactiveViewer.currentState?.scaleFactor ?? 1.0;
+                    final scaleOffset =
+                        interactiveViewer.currentState?.offset ?? Offset.zero;
+                    final bodyCenter =
+                        sizesManager.bodySize.center(Offset.zero);
+                    final canvasPosition =
+                        (event.localPosition - scaleOffset) / scaleFactor -
+                            bodyCenter;
+
                     mainEditorCallbacks?.onTap?.call(
-                      event.localPosition,
+                      canvasPosition,
                       tappedLayer,
                     );
                   });

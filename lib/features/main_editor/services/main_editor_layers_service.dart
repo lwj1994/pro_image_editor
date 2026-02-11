@@ -114,8 +114,14 @@ class MainEditorLayersService {
     }
   }
 
-  /// Handles tap events on a layer to manage selection or editing.
-  void handleLayerTap(Layer layer, PointerEvent event) {
+  /// Handles tap events on a layer to manage
+  /// selection or editing.
+  void handleLayerTap(
+    Layer layer,
+    PointerEvent event,
+  ) {
+    // Track the tapped layer for onTap callback.
+    layerInteraction.lastTappedLayer = layer;
     final bool layersAreSelectable =
         layerInteraction.layersAreSelectable(configs);
 

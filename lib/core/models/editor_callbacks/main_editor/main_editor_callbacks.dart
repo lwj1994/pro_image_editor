@@ -112,8 +112,17 @@ class MainEditorCallbacks extends StandaloneEditorCallbacks {
   /// Callback that is triggered after the image has been successfully decoded.
   final Function()? onImageDecoded;
 
-  /// A callback function that is triggered when the user `tap` on the body.
-  final Function()? onTap;
+  /// A callback function that is triggered when
+  /// the user `tap` on the body.
+  ///
+  /// [localPosition] provides the local coordinates
+  /// of the tap relative to the body area.
+  /// [layer] provides the tapped layer, or `null`
+  /// if no layer was tapped.
+  final Function(
+    Offset localPosition,
+    Layer? layer,
+  )? onTap;
 
   /// A callback function that is triggered when the user `doubleTap`
   /// on the body.
@@ -405,7 +414,7 @@ class MainEditorCallbacks extends StandaloneEditorCallbacks {
     Function(SubEditor editor)? onOpenSubEditor,
     Function(SubEditor editor)? onEndCloseSubEditor,
     Function(SubEditor editor)? onStartCloseSubEditor,
-    Function()? onTap,
+    Function(Offset localPosition, Layer? layer)? onTap,
     Function()? onDoubleTap,
     Function()? onLongPress,
     Function()? onEscapeButton,

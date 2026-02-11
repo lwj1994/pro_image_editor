@@ -281,7 +281,7 @@ class _WhatsAppExampleState extends State<WhatsAppExample>
           _whatsAppHelper.onScaleUpdate(details, _editor!);
         },
         onScaleEnd: (details) => _whatsAppHelper.onScaleEnd(details, _editor!),
-        onTap: () => FocusScope.of(context).unfocus(),
+        onTap: (_, __) => FocusScope.of(context).unfocus(),
       ),
       stickerEditorCallbacks: StickerEditorCallbacks(
         onSearchChanged: (value) {

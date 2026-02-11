@@ -2626,6 +2626,11 @@ class ProImageEditorState extends State<ProImageEditor>
                 onPointerDown: (details) {
                   _lastDownEvent = details;
                   _tapDownTimestamp = DateTime.now();
+
+                  // Reset last tapped layer for each
+                  // new pointer down event.
+                  layerInteractionManager.lastTappedLayer = null;
+
                   _mouseService.onPointerDown(details);
                   if (layerInteractionManager.selectedLayerId.isNotEmpty ||
                       GestureManager.instance.isBlocked) {
@@ -2657,7 +2662,15 @@ class ProImageEditorState extends State<ProImageEditor>
                     if (!configs.videoEditor.enablePlayButton) {
                       widget.videoController?.togglePlayState();
                     }
-                    mainEditorCallbacks?.onTap?.call();
+
+                    // Read and consume lastTappedLayer.
+                    final tappedLayer = layerInteractionManager.lastTappedLayer;
+                    layerInteractionManager.lastTappedLayer = null;
+
+                    mainEditorCallbacks?.onTap?.call(
+                      event.localPosition,
+                      tappedLayer,
+                    );
                   });
                 },
                 onPointerSignal: isDesktop && hasSelectedLayers

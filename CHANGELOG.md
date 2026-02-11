@@ -1,5 +1,24 @@
 # Changelog
 
+## 11.22.0
+- **BREAKING** **FEAT**(callbacks): Enhanced `onTap` callback in `MainEditorCallbacks` to provide tap coordinates and the hit layer.
+  - The signature changed from `Function()?` to `Function(Offset localPosition, Layer? layer)?`.
+  - `localPosition` provides the tap coordinates relative to the editor body.
+  - `layer` provides the tapped `Layer` object, or `null` if no layer was hit.
+  - Example:
+    ```dart
+    MainEditorCallbacks(
+      onTap: (Offset position, Layer? layer) {
+        if (layer != null) {
+          print('Tapped layer: ${layer.id}');
+        } else {
+          print('Canvas tapped at $position');
+        }
+      },
+    )
+    ```
+- **DOCS**(example): Added `CanvasTapExample` to demonstrate the enhanced `onTap` callback.
+
 ## 11.21.0
 - **FEAT**(layer-interaction): Add `focusInteractionOnSelectedLayer` option to `LayerInteractionConfigs`.
   - When enabled, selecting a layer will block gesture interactions (move, scale, rotate) on all other non-selected layers.

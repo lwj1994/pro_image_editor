@@ -115,8 +115,16 @@ class LayerInteractionManager {
   bool hoverRemoveBtn = false;
 
   /// Enables or disables hit detection.
-  /// When `true`, allows detecting user interactions with the painted layer.
+  /// When `true`, allows detecting user interactions
+  /// with the painted layer.
   bool enabledHitDetection = true;
+
+  /// Tracks the last tapped layer during pointer
+  /// interaction. Set during layer tap handling and
+  /// consumed by the body's onPointerUp callback to
+  /// pass to [MainEditorCallbacks.onTap].
+  /// Reset on each new pointer down event.
+  Layer? lastTappedLayer;
 
   /// Flag indicating if the scaling tool is active.
   bool _activeScale = false;

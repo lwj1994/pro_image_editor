@@ -2,6 +2,7 @@ import 'package:example/features/layer/layer_group_page.dart';
 import 'package:flutter/material.dart';
 
 import '/features/ai/ai_group_page.dart';
+import '/features/canvas_tap_example.dart';
 
 import '/features/crop_to_main_editor.dart';
 import '/features/custom_widgets_example.dart';
@@ -168,5 +169,11 @@ List<Example> kImageEditorExamples = const [
     name: 'Frame',
     icon: Icons.filter_frames_outlined,
     page: FrameExample(),
+  ),
+  Example(
+    path: '/canvas-tap',
+    name: 'Canvas-Tap',
+    icon: Icons.touch_app_outlined,
+    page: CanvasTapExample(),
   ),
 ];

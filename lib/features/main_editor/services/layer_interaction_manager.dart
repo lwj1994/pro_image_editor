@@ -585,6 +585,7 @@ class LayerInteractionManager {
   void calculateMovement({
     required double editorScaleFactor,
     required Size editorBodySize,
+    required Size imageSize,
     required BuildContext context,
     required ScaleUpdateDetails detail,
     required List<Layer> selectedLayers,
@@ -693,6 +694,7 @@ class LayerInteractionManager {
         helperLineCtrl: helperLineCtrl,
         editorScaleFactor: editorScaleFactor,
         editorBodySize: editorBodySize,
+        imageSize: imageSize,
         fractionalOffset: fractionalOffset,
       );
 
@@ -1028,6 +1030,7 @@ class LayerInteractionManager {
     required StreamController<void> helperLineCtrl,
     required double editorScaleFactor,
     required Size editorBodySize,
+    required Size imageSize,
     required Offset fractionalOffset,
   }) {
     final snapThreshold = 3.0 / editorScaleFactor;
@@ -1067,6 +1070,7 @@ class LayerInteractionManager {
 
       for (final layer in layerList) {
         if (layer == activeLayer) continue;
+        if (!layer.enableSpacingHighlight) continue;
         final centerOffset = layer.computeOffsetFromCenterFraction(
           _getFractionalLayerOffset(layer),
         );
@@ -1151,6 +1155,7 @@ class LayerInteractionManager {
         layerList: layerList,
         activeLayer: activeLayer,
         editorBodySize: editorBodySize,
+        imageSize: imageSize,
         snapThreshold: spacingSnapThreshold,
       );
 
@@ -1189,9 +1194,14 @@ class LayerInteractionManager {
     required List<Layer> layerList,
     required Layer activeLayer,
     required Size editorBodySize,
+    required Size imageSize,
     required double snapThreshold,
   }) {
     if (snapThreshold <= 0) {
+      return _LayerSpacingGuidesResult.empty;
+    }
+
+    if (!activeLayer.enableSpacingHighlight) {
       return _LayerSpacingGuidesResult.empty;
     }
 
@@ -1203,6 +1213,7 @@ class LayerInteractionManager {
     final otherBounds = <_LayerBoundsSnapshot>[];
     for (final layer in layerList) {
       if (layer == activeLayer) continue;
+      if (!layer.enableSpacingHighlight) continue;
       final bounds = _getLayerBoundsSnapshot(layer);
       if (bounds != null) {
         otherBounds.add(bounds);
@@ -1221,8 +1232,8 @@ class LayerInteractionManager {
 
     final canvasBounds = Rect.fromCenter(
       center: Offset.zero,
-      width: editorBodySize.width,
-      height: editorBodySize.height,
+      width: imageSize.width,
+      height: imageSize.height,
     );
 
     final horizontalResult = _calculateHorizontalSpacingGuides(

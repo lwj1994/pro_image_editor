@@ -1,5 +1,14 @@
 # Changelog
 
+## 12.1.0
+- **FEAT**(layer): Add `enableSpacingHighlight` property to `Layer` class.
+  - Allows subclasses to opt out of equal-spacing snap and highlight detection by setting `enableSpacingHighlight: false`.
+  - Layers with this flag disabled are excluded from all spacing/alignment highlight calculations.
+  - Default: `true` (backward compatible).
+- **FIX**(helper-lines): Limit spacing highlight area to background image bounds instead of full canvas.
+  - Edge-distance calculations now use the decoded image size, ensuring highlights stay within the image body.
+- **FIX**(layer-copy): Preserve `enableSpacingHighlight` when copying layers via `LayerCopyManager`.
+
 ## 12.0.0
 - **BREAKING** **FEAT**(callbacks): Enhanced `onTap` callback in `MainEditorCallbacks` to provide tap coordinates and the hit layer.
   - The signature changed from `Function()?` to `Function(Offset localPosition, Layer? layer)?`.

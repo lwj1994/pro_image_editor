@@ -36,6 +36,7 @@ class Layer {
     this.scale = 1,
     this.flipX = false,
     this.flipY = false,
+    this.enableSpacingHighlight = true,
     this.meta,
     this.boxConstraints,
     this.groupId,
@@ -76,6 +77,10 @@ class Layer {
       id: id,
       flipX: safeParseBool(map[keyConverter('flipX')]),
       flipY: safeParseBool(map[keyConverter('flipY')]),
+      enableSpacingHighlight: safeParseBool(
+        map[keyConverter('enableSpacingHighlight')],
+        fallback: true,
+      ),
       interaction: LayerInteraction.fromMap(
         map[keyConverter('interaction')] ?? {},
         keyConverter: keyInteractionConverter,
@@ -138,6 +143,12 @@ class Layer {
   /// Flags to control horizontal and vertical flipping.
   bool flipX, flipY;
 
+  /// Whether this layer participates in spacing highlight detection.
+  ///
+  /// When `true` (the default), the layer is included in equal-spacing
+  /// snap and highlight calculations. Set to `false` to exclude the layer.
+  bool enableSpacingHighlight;
+
   /// Optional constraints to temporarily limit the layer's dimensions.
   BoxConstraints? boxConstraints;
 
@@ -196,6 +207,8 @@ class Layer {
       'scale': scale.roundSmart(maxDecimalPlaces),
       'flipX': flipX.minify(enableMinify),
       'flipY': flipY.minify(enableMinify),
+      if (!enableSpacingHighlight)
+        'enableSpacingHighlight': enableSpacingHighlight,
       'interaction': interaction.toMap(enableMinify: enableMinify),
       if (meta != null) 'meta': meta,
       'type': 'default',
@@ -227,6 +240,8 @@ class Layer {
       if (layer.scale != scale) 'scale': scale.roundSmart(maxDecimalPlaces),
       if (layer.flipX != flipX) 'flipX': flipX.minify(enableMinify),
       if (layer.flipY != flipY) 'flipY': flipY.minify(enableMinify),
+      if (layer.enableSpacingHighlight != enableSpacingHighlight)
+        'enableSpacingHighlight': enableSpacingHighlight,
       if (!mapIsEqual(layer.meta, meta)) 'meta': meta,
       if (layer.interaction != interaction)
         'interaction': interaction.toMapFromReference(layer.interaction,
@@ -304,6 +319,7 @@ class Layer {
         other.scale == scale &&
         other.flipX == flipX &&
         other.flipY == flipY &&
+        other.enableSpacingHighlight == enableSpacingHighlight &&
         other.interaction == interaction &&
         other.boxConstraints == boxConstraints &&
         other.groupId == groupId &&
@@ -318,6 +334,7 @@ class Layer {
         scale.hashCode ^
         flipX.hashCode ^
         flipY.hashCode ^
+        enableSpacingHighlight.hashCode ^
         interaction.hashCode ^
         boxConstraints.hashCode ^
         meta.hashCode ^
@@ -334,6 +351,7 @@ class Layer {
     double? scale,
     bool? flipX,
     bool? flipY,
+    bool? enableSpacingHighlight,
     LayerInteraction? interaction,
     Map<String, dynamic>? meta,
     BoxConstraints? boxConstraints,
@@ -346,6 +364,8 @@ class Layer {
       scale: scale ?? this.scale,
       flipX: flipX ?? this.flipX,
       flipY: flipY ?? this.flipY,
+      enableSpacingHighlight:
+          enableSpacingHighlight ?? this.enableSpacingHighlight,
       interaction: interaction ?? this.interaction,
       meta: meta ?? this.meta,
       boxConstraints: boxConstraints ?? this.boxConstraints,
@@ -362,6 +382,8 @@ class Layer {
       ..add(DoubleProperty('scale', scale))
       ..add(DiagnosticsProperty<bool>('flipX', flipX))
       ..add(DiagnosticsProperty<bool>('flipY', flipY))
+      ..add(DiagnosticsProperty<bool>(
+          'enableSpacingHighlight', enableSpacingHighlight))
       ..add(DiagnosticsProperty<Offset>('offset', offset))
       ..add(DiagnosticsProperty<Map<String, dynamic>>('meta', meta))
       ..add(

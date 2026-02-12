@@ -84,6 +84,20 @@ class _LayerSpacingPaddingExampleState extends State<LayerSpacingPaddingExample>
         ),
         blockCaptureScreenshot: true,
       )
+      // Layer D: excluded from spacing highlight via enableSpacingHighlight
+      ..addLayer(
+        WidgetLayer(
+          enableSpacingHighlight: false,
+          offset: Offset(aCenterX, y + blockHeight + spacing),
+          widget: _buildBlock(
+            label: 'D (ignored)',
+            color: Colors.grey.shade500,
+            width: blockWidth,
+            height: blockHeight,
+          ),
+        ),
+        blockCaptureScreenshot: true,
+      )
       ..unselectAllLayers();
   }
 
@@ -143,7 +157,8 @@ class _LayerSpacingPaddingExampleState extends State<LayerSpacingPaddingExample>
               const Text(
                 '1. Drag C towards B\n'
                 '2. Watch margin/gap blocks highlight\n'
-                '3. Snap triggers when equal spacing is near',
+                '3. Snap triggers when equal spacing is near\n'
+                '4. D (grey) is excluded from highlights',
                 style: TextStyle(
                   color: Colors.white,
                   height: 1.35,

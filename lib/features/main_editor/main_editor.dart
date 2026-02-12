@@ -1264,6 +1264,7 @@ class ProImageEditorState extends State<ProImageEditor>
       layerInteractionManager.calculateMovement(
         editorScaleFactor: editorScaleFactor,
         editorBodySize: sizesManager.bodySize,
+        imageSize: sizesManager.decodedImageSize,
         removeAreaKey: _removeAreaKey,
         selectedLayers: selectedLayers,
         layerList: activeLayers,

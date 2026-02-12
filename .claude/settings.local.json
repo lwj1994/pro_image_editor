@@ -6,7 +6,11 @@
       "Bash(git tag:*)",
       "Bash(git push:*)",
       "Bash(git commit:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(bash:*)",
+      "Bash(flutter test:*)",
+      "Bash(flutter pub publish:*)",
+      "Bash(git pull:*)"
     ]
   }
 }

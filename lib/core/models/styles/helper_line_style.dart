@@ -45,6 +45,7 @@ class HelperLineStyle {
     this.verticalColor = const Color(0xFF1565C0),
     this.rotateColor = const Color(0xFFE91E63),
     this.layerAlignColor = const Color(0xFF7C4DFF),
+    this.layerSpacingColor = const Color(0x4D7C4DFF),
   });
 
   /// Color of horizontal helper lines.
@@ -59,6 +60,9 @@ class HelperLineStyle {
   /// Color of layer align helper lines.
   final Color layerAlignColor;
 
+  /// Fill color for layer spacing highlights (gap/margin blocks).
+  final Color layerSpacingColor;
+
   /// Creates a copy of this `HelperLineStyle` object with the given fields
   /// replaced with new values.
   ///
@@ -70,12 +74,14 @@ class HelperLineStyle {
     Color? verticalColor,
     Color? rotateColor,
     Color? layerAlignColor,
+    Color? layerSpacingColor,
   }) {
     return HelperLineStyle(
       horizontalColor: horizontalColor ?? this.horizontalColor,
       verticalColor: verticalColor ?? this.verticalColor,
       rotateColor: rotateColor ?? this.rotateColor,
       layerAlignColor: layerAlignColor ?? this.layerAlignColor,
+      layerSpacingColor: layerSpacingColor ?? this.layerSpacingColor,
     );
   }
 }

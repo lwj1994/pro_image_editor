@@ -118,6 +118,8 @@ class MainEditorHelperLines extends StatelessWidget {
                         _buildRotateLine(scale, screenSize.height * 2),
                       if (helperLines.showLayerAlignLine)
                         ..._buildLayerAlignLines(scale, screenSize),
+                      if (helperLines.showLayerSpacingLine)
+                        ..._buildLayerSpacingHighlights(scale, editorBodySize),
                     ],
                   ),
                 );
@@ -212,5 +214,43 @@ class MainEditorHelperLines extends StatelessWidget {
           color: helperLines.style.layerAlignColor,
         ),
     ];
+  }
+
+  List<Widget> _buildLayerSpacingHighlights(double scale, Size editorSize) {
+    if (_isLayerInRemovalZone) {
+      return [];
+    }
+
+    final highlights = layerInteractionManager.layerSpacingHighlightRects;
+    if (highlights.isEmpty) {
+      return [];
+    }
+
+    final center = editorSize.center(Offset.zero);
+    final color = helperLines.style.layerSpacingColor;
+
+    final widgets = <Widget>[];
+    for (int i = 0; i < highlights.length; i++) {
+      final rect = highlights[i];
+      if (rect.width <= 0 || rect.height <= 0) {
+        continue;
+      }
+
+      widgets.add(
+        Positioned(
+          key: ValueKey('Layer-Spacing-Highlight-$i'),
+          left: (center.dx + rect.left) * scale,
+          top: (center.dy + rect.top) * scale,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: _duration),
+            width: rect.width * scale,
+            height: rect.height * scale,
+            color: color,
+          ),
+        ),
+      );
+    }
+
+    return widgets;
   }
 }

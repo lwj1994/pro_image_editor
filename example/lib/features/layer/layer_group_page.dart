@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '/features/layer/focus_layer_interaction_example.dart';
 import '/features/layer/layer_grouping_example.dart';
 import '/features/layer/layer_select_design_example.dart';
+import '/features/layer/layer_spacing_padding_example.dart';
 import '/features/layer/selectable_layer_example.dart';
 
 /// A [StatefulWidget] that represents the AI group page in the application.
@@ -49,6 +50,14 @@ class _LayerGroupPageState extends State<LayerGroupPage> {
             subtitle: const Text('Block other layers when one is selected'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _openExample(const FocusLayerInteractionExample()),
+          ),
+          ListTile(
+            leading: const Icon(Icons.space_dashboard_outlined),
+            title: const Text('Spacing Snap & Padding Highlight'),
+            subtitle: const Text(
+                'Demo for equal gap snapping and gap/margin highlight'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openExample(const LayerSpacingPaddingExample()),
           ),
         ],
       ),

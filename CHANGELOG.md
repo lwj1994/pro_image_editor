@@ -1,5 +1,12 @@
 # Changelog
 
+## 12.1.5
+- **FEAT**(helper-lines): Add layer edge alignment snap support for both same-side and opposite-side edges (left/right, top/bottom).
+- **FEAT**(helper-lines): Allow multiple layer-align guide lines to render simultaneously when multiple align conditions are satisfied.
+- **FIX**(helper-lines): Improve layer-align guide release responsiveness during small-step drags.
+- **TEST**(helper-lines): Add regression coverage for edge align, multi-guide rendering, and release behavior.
+- **CHORE**(example): Expand layer helper-line example to demonstrate edge alignment and spacing highlights together.
+
 ## 12.1.4
 - **REFACTOR**(helper-lines): Render layer spacing highlights before other helper lines to keep a consistent visual stacking order.
 - **CHORE**(example): Enable vertical, horizontal, rotate, and layer-align helper lines in `LayerSpacingPaddingExample`.

@@ -61,6 +61,7 @@ const Map<String, String> kMinifiedLayerKeys = {
   'boxConstraints': 'bx',
   'maxTextWidth': 'mt',
   'shadows': 'sh',
+  'enableSpacingHighlight': 'es',
 
   /// Only in version < 8.0.0
   'enableInteraction': 'ei',

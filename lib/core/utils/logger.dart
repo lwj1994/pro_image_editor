@@ -4,6 +4,12 @@ import 'package:flutter/foundation.dart';
 class Logger {
   const Logger._(this.tag);
 
+  /// Global runtime switch for package logs.
+  ///
+  /// Defaults to `false` so logs are disabled unless explicitly enabled by
+  /// hosts such as `example` or `test` entry points.
+  static bool enabled = false;
+
   /// The tag prefix for log messages.
   final String tag;
 
@@ -12,13 +18,13 @@ class Logger {
 
   /// Logs an informational message.
   void info(String message) {
-    if (!kDebugMode) return;
+    if (!kDebugMode || !enabled) return;
     debugPrint('[pro_image_editor][$tag] $message');
   }
 
   /// Logs a labeled value.
   void value(String label, Object? value) {
-    if (!kDebugMode) return;
+    if (!kDebugMode || !enabled) return;
     debugPrint('[pro_image_editor][$tag] $label: $value');
   }
 }

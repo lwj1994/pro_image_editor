@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.1.3
+- **FIX**(helper-lines): Resolve asymmetric spacing snap/highlight in edge+gap base cases, ensuring both equal gaps are highlighted when dragging the left/top layer.
+- **FIX**(import-export): Add missing minified layer key mapping for `enableSpacingHighlight` to prevent assertion failures when importing minified history.
+- **CHORE**(logger): Disable package logs by default and enable them explicitly in `example` and `test` environments.
+- **TEST**(helper-lines): Add spacing regression coverage for margin-gap snap, non-overlap exclusion, cascade highlight, midpoint snap, overlap suppression, and vertical symmetry.
+
 ## 12.1.2
 - **FIX**(helper-lines): Fix spacing highlight rects incorrectly covering the active layer body and extending beyond adjacent layers.
 

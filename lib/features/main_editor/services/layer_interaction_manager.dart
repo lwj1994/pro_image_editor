@@ -1485,6 +1485,72 @@ class LayerInteractionManager {
           ],
         );
       }
+
+      // Handle base case where the active layer is centered between
+      // an anchor layer and one canvas edge.
+      final leftEdgeAvailableSpace =
+          anchor.rect.left - canvasBounds.left - activeBounds.rect.width;
+      if (leftEdgeAvailableSpace > 0) {
+        final distance = leftEdgeAvailableSpace / 2;
+        final targetLeft = canvasBounds.left + distance;
+        final delta = targetLeft - activeBounds.rect.left;
+
+        considerCandidate(
+          delta: delta,
+          distance: distance,
+          highlightRects: [
+            ..._collectRelatedReferenceRects(
+              references: references,
+              distance: distance,
+              snapThreshold: snapThreshold,
+            ),
+            Rect.fromLTRB(
+              canvasBounds.left,
+              overlapTop,
+              targetLeft,
+              overlapBottom,
+            ),
+            Rect.fromLTRB(
+              targetLeft + activeBounds.rect.width,
+              overlapTop,
+              anchor.rect.left,
+              overlapBottom,
+            ),
+          ],
+        );
+      }
+
+      final rightEdgeAvailableSpace =
+          canvasBounds.right - anchor.rect.right - activeBounds.rect.width;
+      if (rightEdgeAvailableSpace > 0) {
+        final distance = rightEdgeAvailableSpace / 2;
+        final targetLeft = anchor.rect.right + distance;
+        final delta = targetLeft - activeBounds.rect.left;
+
+        considerCandidate(
+          delta: delta,
+          distance: distance,
+          highlightRects: [
+            ..._collectRelatedReferenceRects(
+              references: references,
+              distance: distance,
+              snapThreshold: snapThreshold,
+            ),
+            Rect.fromLTRB(
+              anchor.rect.right,
+              overlapTop,
+              targetLeft,
+              overlapBottom,
+            ),
+            Rect.fromLTRB(
+              targetLeft + activeBounds.rect.width,
+              overlapTop,
+              canvasBounds.right,
+              overlapBottom,
+            ),
+          ],
+        );
+      }
     }
 
     for (int i = 0; i < sortedBounds.length; i++) {
@@ -1734,6 +1800,72 @@ class LayerInteractionManager {
               snapThreshold: snapThreshold,
             ),
             topGapRect,
+          ],
+        );
+      }
+
+      // Handle base case where the active layer is centered between
+      // an anchor layer and one canvas edge.
+      final topEdgeAvailableSpace =
+          anchor.rect.top - canvasBounds.top - activeBounds.rect.height;
+      if (topEdgeAvailableSpace > 0) {
+        final distance = topEdgeAvailableSpace / 2;
+        final targetTop = canvasBounds.top + distance;
+        final delta = targetTop - activeBounds.rect.top;
+
+        considerCandidate(
+          delta: delta,
+          distance: distance,
+          highlightRects: [
+            ..._collectRelatedReferenceRects(
+              references: references,
+              distance: distance,
+              snapThreshold: snapThreshold,
+            ),
+            Rect.fromLTRB(
+              overlapLeft,
+              canvasBounds.top,
+              overlapRight,
+              targetTop,
+            ),
+            Rect.fromLTRB(
+              overlapLeft,
+              targetTop + activeBounds.rect.height,
+              overlapRight,
+              anchor.rect.top,
+            ),
+          ],
+        );
+      }
+
+      final bottomEdgeAvailableSpace =
+          canvasBounds.bottom - anchor.rect.bottom - activeBounds.rect.height;
+      if (bottomEdgeAvailableSpace > 0) {
+        final distance = bottomEdgeAvailableSpace / 2;
+        final targetTop = anchor.rect.bottom + distance;
+        final delta = targetTop - activeBounds.rect.top;
+
+        considerCandidate(
+          delta: delta,
+          distance: distance,
+          highlightRects: [
+            ..._collectRelatedReferenceRects(
+              references: references,
+              distance: distance,
+              snapThreshold: snapThreshold,
+            ),
+            Rect.fromLTRB(
+              overlapLeft,
+              anchor.rect.bottom,
+              overlapRight,
+              targetTop,
+            ),
+            Rect.fromLTRB(
+              overlapLeft,
+              targetTop + activeBounds.rect.height,
+              overlapRight,
+              canvasBounds.bottom,
+            ),
           ],
         );
       }

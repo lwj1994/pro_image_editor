@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 
 import 'package:pro_image_editor/pro_image_editor.dart';
+import 'package:pro_image_editor/core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,6 +15,9 @@ import 'core/constants/example_list_constant.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Enable package logs in the example app.
+  Logger.enabled = true;
 
   // Necessary initialization for package:media_kit.
   MediaKit.ensureInitialized();

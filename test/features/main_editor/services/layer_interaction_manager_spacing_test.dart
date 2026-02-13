@@ -316,5 +316,72 @@ void main() {
             manager.layerSpacingHighlightRects.length, greaterThanOrEqualTo(2));
       },
     );
+
+    testWidgets(
+      'Vertical regression: keeps highlights on equal m-gaps only when edge n is merely near threshold',
+      (tester) async {
+        final manager = _createManager();
+        // Canvas top/bottom are -50/50; this layout creates:
+        // top edge -> A = 8 (n), A->B = 12 (m), B->C = 12 (m), C->bottom = 8 (n).
+        // With snap threshold 6, n is close to m but should not be highlighted.
+        final active = _layer(0, -33.11); // Slightly above the m target.
+        final b = _layer(0, 0);
+        final c = _layer(0, 32);
+        final layers = [active, b, c];
+        final removeAreaKey = GlobalKey();
+        final context = await _pumpHarness(
+          tester: tester,
+          layers: layers,
+          removeAreaKey: removeAreaKey,
+        );
+        final helperLineCtrl = StreamController<void>.broadcast();
+        addTearDown(helperLineCtrl.close);
+
+        _runMovement(
+          manager: manager,
+          context: context,
+          activeLayer: active,
+          layers: layers,
+          removeAreaKey: removeAreaKey,
+          helperLineCtrl: helperLineCtrl,
+        );
+
+        // Snap to keep A-B and B-C equal (m = 12), but do not cascade to edge n.
+        expect(active.offset.dy, closeTo(-32, 0.001));
+        expect(manager.layerSpacingHighlightRects.length, 2);
+      },
+    );
+
+    testWidgets(
+      'Regression: outside-canvas anchor should not produce spacing highlights',
+      (tester) async {
+        final manager = _createManager();
+        // Canvas X bounds are [-100, 100].
+        // Active layer A is fully outside on the left and would previously
+        // trigger a margin-gap snap against inside B (false positive).
+        final activeAOutside = _layer(-110, 0);
+        final insideB = _layer(-70, 0);
+        final layers = [activeAOutside, insideB];
+        final removeAreaKey = GlobalKey();
+        final context = await _pumpHarness(
+          tester: tester,
+          layers: layers,
+          removeAreaKey: removeAreaKey,
+        );
+        final helperLineCtrl = StreamController<void>.broadcast();
+        addTearDown(helperLineCtrl.close);
+
+        _runMovement(
+          manager: manager,
+          context: context,
+          activeLayer: activeAOutside,
+          layers: layers,
+          removeAreaKey: removeAreaKey,
+          helperLineCtrl: helperLineCtrl,
+        );
+
+        expect(manager.layerSpacingHighlightRects, isEmpty);
+      },
+    );
   });
 }

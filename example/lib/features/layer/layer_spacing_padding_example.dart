@@ -4,7 +4,7 @@ import 'package:pro_image_editor/pro_image_editor.dart';
 
 import '/core/mixin/example_helper.dart';
 
-/// Example page for testing equal-spacing snap and padding highlights.
+/// Example page for testing layer-edge align and equal-spacing highlights.
 class LayerSpacingPaddingExample extends StatefulWidget {
   /// Creates a new [LayerSpacingPaddingExample] widget.
   const LayerSpacingPaddingExample({super.key});
@@ -35,24 +35,60 @@ class _LayerSpacingPaddingExampleState extends State<LayerSpacingPaddingExample>
     final spacing = (bodySize.width * 0.08).clamp(20.0, 44.0);
     final blockWidth = (bodySize.width * 0.20).clamp(72.0, 120.0);
     final blockHeight = (bodySize.height * 0.10).clamp(56.0, 84.0);
-    final y = -(bodySize.height * 0.18).clamp(64.0, 120.0);
+    final alignDemoY = -(bodySize.height * 0.22).clamp(72.0, 130.0);
 
     final leftEdge = -bodySize.width / 2;
     final rightEdge = bodySize.width / 2;
 
-    final aCenterX = leftEdge + spacing + blockWidth / 2;
-    final bCenterX = aCenterX + blockWidth + spacing;
+    final anchorWidth = (blockWidth * 1.08).clamp(88.0, 132.0);
+    final anchorHeight = (blockHeight * 1.16).clamp(64.0, 96.0);
+    final dragWidth = (blockWidth * 0.78).clamp(64.0, 104.0);
+    final dragHeight = (blockHeight * 0.82).clamp(52.0, 78.0);
 
-    final cTargetX = bCenterX + blockWidth + spacing;
-    final cStartX =
-        (cTargetX + spacing * 0.9).clamp(aCenterX + blockWidth, rightEdge - 20);
+    final aCenterX = leftEdge + spacing + anchorWidth / 2;
+    final bCenterX = aCenterX + anchorWidth / 2 + dragWidth / 2 + spacing * 1.2;
+    final bCenterY = alignDemoY + spacing * 0.4;
+
+    final spacingDemoY = alignDemoY + anchorHeight / 2 + blockHeight + spacing;
+    final s1CenterX = leftEdge + spacing + blockWidth / 2;
+    final s2CenterX = s1CenterX + blockWidth + spacing;
+    final s3TargetX = s2CenterX + blockWidth + spacing;
+    final s3StartX = (s3TargetX + spacing * 0.9)
+        .clamp(s1CenterX + blockWidth, rightEdge - 20);
 
     editor
+      // Edge align demo (A-B): drag B around A to trigger top/bottom/left/right
+      // helper line highlight and snapping.
       ..addLayer(
         WidgetLayer(
-          offset: Offset(aCenterX, y),
+          offset: Offset(aCenterX, alignDemoY),
           widget: _buildBlock(
-            label: 'A',
+            label: 'A (anchor)',
+            color: Colors.indigo.shade600,
+            width: anchorWidth,
+            height: anchorHeight,
+          ),
+        ),
+        blockCaptureScreenshot: true,
+      )
+      ..addLayer(
+        WidgetLayer(
+          offset: Offset(bCenterX, bCenterY),
+          widget: _buildBlock(
+            label: 'B (drag)',
+            color: Colors.deepOrange.shade500,
+            width: dragWidth,
+            height: dragHeight,
+          ),
+        ),
+        blockCaptureScreenshot: true,
+      )
+      // Equal-spacing demo (S1-S3): drag S3 toward S2 to see gap highlights.
+      ..addLayer(
+        WidgetLayer(
+          offset: Offset(s1CenterX, spacingDemoY),
+          widget: _buildBlock(
+            label: 'S1',
             color: Colors.blue.shade600,
             width: blockWidth,
             height: blockHeight,
@@ -62,9 +98,9 @@ class _LayerSpacingPaddingExampleState extends State<LayerSpacingPaddingExample>
       )
       ..addLayer(
         WidgetLayer(
-          offset: Offset(bCenterX, y),
+          offset: Offset(s2CenterX, spacingDemoY),
           widget: _buildBlock(
-            label: 'B',
+            label: 'S2',
             color: Colors.orange.shade600,
             width: blockWidth,
             height: blockHeight,
@@ -74,9 +110,9 @@ class _LayerSpacingPaddingExampleState extends State<LayerSpacingPaddingExample>
       )
       ..addLayer(
         WidgetLayer(
-          offset: Offset(cStartX, y),
+          offset: Offset(s3StartX, spacingDemoY),
           widget: _buildBlock(
-            label: 'C',
+            label: 'S3',
             color: Colors.green.shade600,
             width: blockWidth,
             height: blockHeight,
@@ -88,7 +124,7 @@ class _LayerSpacingPaddingExampleState extends State<LayerSpacingPaddingExample>
       ..addLayer(
         WidgetLayer(
           enableSpacingHighlight: false,
-          offset: Offset(aCenterX, y + blockHeight + spacing),
+          offset: Offset(s1CenterX, spacingDemoY + blockHeight + spacing),
           widget: _buildBlock(
             label: 'D (ignored)',
             color: Colors.grey.shade500,
@@ -136,7 +172,7 @@ class _LayerSpacingPaddingExampleState extends State<LayerSpacingPaddingExample>
       bottom: 12,
       child: GestureInterceptor(
         child: Container(
-          width: 280,
+          width: 320,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.70),
@@ -155,10 +191,11 @@ class _LayerSpacingPaddingExampleState extends State<LayerSpacingPaddingExample>
               ),
               const SizedBox(height: 6),
               const Text(
-                '1. Drag C towards B\n'
-                '2. Watch margin/gap blocks highlight\n'
-                '3. Snap triggers when equal spacing is near\n'
-                '4. D (grey) is excluded from highlights',
+                '1. Drag B around A\n'
+                '   Top/Bottom/Left/Right edge align shows a purple guide line\n'
+                '2. Drag S3 towards S2\n'
+                '   Margin/gap blocks highlight in green and spacing snaps\n'
+                '3. D (grey) is excluded from spacing highlights',
                 style: TextStyle(
                   color: Colors.white,
                   height: 1.35,

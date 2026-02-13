@@ -53,9 +53,9 @@ class _LayerGroupPageState extends State<LayerGroupPage> {
           ),
           ListTile(
             leading: const Icon(Icons.space_dashboard_outlined),
-            title: const Text('Spacing Snap & Padding Highlight'),
+            title: const Text('Edge Align & Spacing Highlights'),
             subtitle: const Text(
-                'Demo for equal gap snapping and gap/margin highlight'),
+                'Demo for A-B edge align snap and equal-spacing highlights'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _openExample(const LayerSpacingPaddingExample()),
           ),

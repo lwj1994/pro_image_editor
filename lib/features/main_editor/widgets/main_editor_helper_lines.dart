@@ -179,41 +179,45 @@ class MainEditorHelperLines extends StatelessWidget {
     final editorCenter = sizesManager.bodySize / 2;
     const halfStroke = _strokeWidth / 2;
 
-    final verticalOffset = (editorCenter.width +
-            layerInteractionManager.verticalGuideOffset.dx -
-            halfStroke) *
-        scale;
+    if (_isLayerInRemovalZone) {
+      return [];
+    }
 
-    final horizontalOffset = (editorCenter.height +
-            layerInteractionManager.horizontalGuideOffset.dy -
-            halfStroke) *
-        scale;
+    final horizontalGuides = layerInteractionManager.horizontalGuideOffsets;
+    final verticalGuides = layerInteractionManager.verticalGuideOffsets;
+    final widgets = <Widget>[];
 
-    final showHorizontal = layerInteractionManager.isHorizontalGuideVisible &&
-        !_isLayerInRemovalZone;
-    final showVertical = layerInteractionManager.isVerticalGuideVisible &&
-        !_isLayerInRemovalZone;
-
-    return [
-      if (showHorizontal)
+    for (int i = 0; i < horizontalGuides.length; i++) {
+      final horizontalOffset =
+          (editorCenter.height + horizontalGuides[i] - halfStroke) * scale;
+      widgets.add(
         _buildLine(
-          key: const ValueKey('Horizontal-Guide-Line'),
+          key: ValueKey('Horizontal-Guide-Line-$i'),
           width: screenSize.width * scale,
           height: _strokeWidth,
           top: horizontalOffset,
           left: 0,
           color: helperLines.style.layerAlignColor,
         ),
-      if (showVertical)
+      );
+    }
+
+    for (int i = 0; i < verticalGuides.length; i++) {
+      final verticalOffset =
+          (editorCenter.width + verticalGuides[i] - halfStroke) * scale;
+      widgets.add(
         _buildLine(
-          key: const ValueKey('Vertical-Guide-Line'),
+          key: ValueKey('Vertical-Guide-Line-$i'),
           width: _strokeWidth,
           height: screenSize.height * scale,
           top: 0,
           left: verticalOffset,
           color: helperLines.style.layerAlignColor,
         ),
-    ];
+      );
+    }
+
+    return widgets;
   }
 
   List<Widget> _buildLayerSpacingHighlights(double scale, Size editorSize) {

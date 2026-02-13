@@ -108,6 +108,20 @@ class LayerInteractionManager {
   /// Offset of the vertical alignment line relative to the editor center.
   Offset verticalGuideOffset = Offset.zero;
 
+  /// All active horizontal alignment guide offsets (dy from editor center).
+  final List<double> _horizontalGuideOffsets = [];
+
+  /// All active vertical alignment guide offsets (dx from editor center).
+  final List<double> _verticalGuideOffsets = [];
+
+  /// Immutable horizontal guide offsets.
+  List<double> get horizontalGuideOffsets =>
+      List.unmodifiable(_horizontalGuideOffsets);
+
+  /// Immutable vertical guide offsets.
+  List<double> get verticalGuideOffsets =>
+      List.unmodifiable(_verticalGuideOffsets);
+
   /// Highlight blocks for equal-spacing guides (gap/margin).
   final List<Rect> _layerSpacingHighlightRects = [];
 
@@ -889,6 +903,10 @@ class LayerInteractionManager {
     showRotationHelperLine = false;
     isVerticalGuideVisible = false;
     isHorizontalGuideVisible = false;
+    _horizontalGuideOffsets.clear();
+    _verticalGuideOffsets.clear();
+    horizontalGuideOffset = Offset.zero;
+    verticalGuideOffset = Offset.zero;
     _layerSpacingHighlightRects.clear();
     _horizontalSpacingSnapHelper.reset();
     _verticalSpacingSnapHelper.reset();
@@ -1042,118 +1060,223 @@ class LayerInteractionManager {
   }) {
     final snapThreshold = 3.0 / editorScaleFactor;
     final releaseThreshold = helperLineConfigs.releaseThreshold;
+    final alignReleaseThreshold = min(releaseThreshold, snapThreshold);
     final spacingSnapThreshold =
         helperLineConfigs.layerSpacingSnapThreshold / editorScaleFactor;
     final showLayerAlignLine = helperLineConfigs.showLayerAlignLine;
     final showLayerSpacingLine = helperLineConfigs.showLayerSpacingLine;
 
-    final wasHorizontalGuideVisible = isHorizontalGuideVisible;
-    final wasVerticalGuideVisible = isVerticalGuideVisible;
+    final beforeHorizontalGuides = List<double>.from(_horizontalGuideOffsets);
+    final beforeVerticalGuides = List<double>.from(_verticalGuideOffsets);
     final beforeSpacingHighlights =
         List<Rect>.from(_layerSpacingHighlightRects);
+    final hadHorizontalGuides = beforeHorizontalGuides.isNotEmpty;
+    final hadVerticalGuides = beforeVerticalGuides.isNotEmpty;
     final hadSpacingHighlights = beforeSpacingHighlights.isNotEmpty;
 
+    _horizontalGuideOffsets.clear();
+    _verticalGuideOffsets.clear();
     isHorizontalGuideVisible = false;
     isVerticalGuideVisible = false;
 
     if (showLayerAlignLine) {
-      Offset? horizontalOffset;
-      Offset? verticalOffset;
+      final horizontalCandidates = <_LayerAlignSnapCandidate>[];
+      final verticalCandidates = <_LayerAlignSnapCandidate>[];
 
-      final Offset localPointFromCenter = activeLayer.computeLocalCenterOffset(
-        fractionalOffset,
-      );
       final Offset layerCenterOffset =
           activeLayer.computeOffsetFromCenterFraction(fractionalOffset);
+      final activeBounds = _getLayerBoundsSnapshot(activeLayer);
 
-      final uniqueDxOffsets = <Offset>[];
-      final uniqueDyOffsets = <Offset>[];
-      final seenDx = <double>{};
-      final seenDy = <double>{};
+      final seenCenterDx = <double>{};
+      final seenCenterDy = <double>{};
+      final seenLeft = <double>{};
+      final seenRight = <double>{};
+      final seenTop = <double>{};
+      final seenBottom = <double>{};
 
       bool isSimilar(Set<double> seen, double value, double threshold) {
         return seen.any((v) => (v - value).abs() < threshold);
       }
 
+      void considerVerticalCandidate({
+        required double guideX,
+        required double delta,
+        required Offset snapKey,
+      }) {
+        if (delta.abs() > snapThreshold) return;
+
+        verticalCandidates.add(
+          _LayerAlignSnapCandidate(
+            guideCoordinate: guideX,
+            delta: delta,
+            snapKey: snapKey,
+          ),
+        );
+      }
+
+      void considerHorizontalCandidate({
+        required double guideY,
+        required double delta,
+        required Offset snapKey,
+      }) {
+        if (delta.abs() > snapThreshold) return;
+
+        horizontalCandidates.add(
+          _LayerAlignSnapCandidate(
+            guideCoordinate: guideY,
+            delta: delta,
+            snapKey: snapKey,
+          ),
+        );
+      }
+
       for (final layer in layerList) {
         if (layer == activeLayer) continue;
         if (!layer.enableSpacingHighlight) continue;
+
         final centerOffset = layer.computeOffsetFromCenterFraction(
           _getFractionalLayerOffset(layer),
         );
 
-        final dx = centerOffset.dx;
-        final dy = centerOffset.dy;
-
-        if (!isSimilar(seenDx, dx, snapThreshold)) {
-          seenDx.add(dx);
-          uniqueDxOffsets.add(centerOffset);
+        if (!isSimilar(seenCenterDx, centerOffset.dx, snapThreshold)) {
+          seenCenterDx.add(centerOffset.dx);
+          considerVerticalCandidate(
+            guideX: centerOffset.dx,
+            delta: centerOffset.dx - layerCenterOffset.dx,
+            snapKey: Offset(centerOffset.dx, 0),
+          );
         }
 
-        if (!isSimilar(seenDy, dy, snapThreshold)) {
-          seenDy.add(dy);
-          uniqueDyOffsets.add(centerOffset);
+        if (!isSimilar(seenCenterDy, centerOffset.dy, snapThreshold)) {
+          seenCenterDy.add(centerOffset.dy);
+          considerHorizontalCandidate(
+            guideY: centerOffset.dy,
+            delta: centerOffset.dy - layerCenterOffset.dy,
+            snapKey: Offset(0, centerOffset.dy),
+          );
+        }
+
+        if (activeBounds == null) continue;
+
+        final layerBounds = _getLayerBoundsSnapshot(layer);
+        if (layerBounds == null) continue;
+
+        if (!isSimilar(seenLeft, layerBounds.rect.left, snapThreshold)) {
+          seenLeft.add(layerBounds.rect.left);
+          // Same-edge: active left aligns to other left.
+          considerVerticalCandidate(
+            guideX: layerBounds.rect.left,
+            delta: layerBounds.rect.left - activeBounds.rect.left,
+            snapKey: Offset(layerBounds.rect.left, -1),
+          );
+          // Opposite-edge: active right aligns to other left.
+          considerVerticalCandidate(
+            guideX: layerBounds.rect.left,
+            delta: layerBounds.rect.left - activeBounds.rect.right,
+            snapKey: Offset(layerBounds.rect.left, -1),
+          );
+        }
+
+        if (!isSimilar(seenRight, layerBounds.rect.right, snapThreshold)) {
+          seenRight.add(layerBounds.rect.right);
+          // Same-edge: active right aligns to other right.
+          considerVerticalCandidate(
+            guideX: layerBounds.rect.right,
+            delta: layerBounds.rect.right - activeBounds.rect.right,
+            snapKey: Offset(layerBounds.rect.right, 1),
+          );
+          // Opposite-edge: active left aligns to other right.
+          considerVerticalCandidate(
+            guideX: layerBounds.rect.right,
+            delta: layerBounds.rect.right - activeBounds.rect.left,
+            snapKey: Offset(layerBounds.rect.right, 1),
+          );
+        }
+
+        if (!isSimilar(seenTop, layerBounds.rect.top, snapThreshold)) {
+          seenTop.add(layerBounds.rect.top);
+          // Same-edge: active top aligns to other top.
+          considerHorizontalCandidate(
+            guideY: layerBounds.rect.top,
+            delta: layerBounds.rect.top - activeBounds.rect.top,
+            snapKey: Offset(-1, layerBounds.rect.top),
+          );
+          // Opposite-edge: active bottom aligns to other top.
+          considerHorizontalCandidate(
+            guideY: layerBounds.rect.top,
+            delta: layerBounds.rect.top - activeBounds.rect.bottom,
+            snapKey: Offset(-1, layerBounds.rect.top),
+          );
+        }
+
+        if (!isSimilar(seenBottom, layerBounds.rect.bottom, snapThreshold)) {
+          seenBottom.add(layerBounds.rect.bottom);
+          // Same-edge: active bottom aligns to other bottom.
+          considerHorizontalCandidate(
+            guideY: layerBounds.rect.bottom,
+            delta: layerBounds.rect.bottom - activeBounds.rect.bottom,
+            snapKey: Offset(1, layerBounds.rect.bottom),
+          );
+          // Opposite-edge: active top aligns to other bottom.
+          considerHorizontalCandidate(
+            guideY: layerBounds.rect.bottom,
+            delta: layerBounds.rect.bottom - activeBounds.rect.top,
+            snapKey: Offset(1, layerBounds.rect.bottom),
+          );
         }
       }
 
-      for (final layerOffset in uniqueDxOffsets) {
-        if (verticalOffset != null) break;
+      final verticalCandidate = _selectBestAlignCandidate(verticalCandidates);
+      if (verticalCandidate != null &&
+          _verticalSnapHelper.maybeSnap(
+            focal: detail.focalPoint.dx,
+            focalDelta: detail.focalPointDelta.dx,
+            offset: verticalCandidate.snapKey,
+            threshold: snapThreshold,
+            releaseThreshold: alignReleaseThreshold,
+            positiveDirection: LayerLastPosition.left,
+            negativeDirection: LayerLastPosition.right,
+          )) {
+        final snappedDelta = verticalCandidate.delta;
+        activeLayer.offset += Offset(snappedDelta, 0);
 
-        final dx = (layerOffset.dx - layerCenterOffset.dx).abs();
-
-        // Vertical snapping (dx axis)
-        if (dx <= snapThreshold &&
-            _verticalSnapHelper.maybeSnap(
-              focal: detail.focalPoint.dx,
-              focalDelta: detail.focalPointDelta.dx,
-              offset: layerOffset,
-              threshold: snapThreshold,
-              releaseThreshold: releaseThreshold,
-              positiveDirection: LayerLastPosition.left,
-              negativeDirection: LayerLastPosition.right,
-            )) {
-          verticalOffset = layerOffset;
-        }
-      }
-
-      for (final layerOffset in uniqueDyOffsets) {
-        if (horizontalOffset != null) break;
-
-        final dy = (layerOffset.dy - layerCenterOffset.dy).abs();
-
-        // Horizontal snapping (dy axis)
-        if (dy <= snapThreshold &&
-            _horizontalSnapHelper.maybeSnap(
-              focal: detail.focalPoint.dy,
-              focalDelta: detail.focalPointDelta.dy,
-              offset: layerOffset,
-              threshold: snapThreshold,
-              releaseThreshold: releaseThreshold,
-              positiveDirection: LayerLastPosition.top,
-              negativeDirection: LayerLastPosition.bottom,
-            )) {
-          horizontalOffset = layerOffset;
-        }
-      }
-
-      if (verticalOffset != null) {
-        verticalGuideOffset = verticalOffset;
-        isVerticalGuideVisible = true;
-
-        activeLayer.offset = Offset(
-          verticalOffset.dx - localPointFromCenter.dx,
-          activeLayer.offset.dy,
+        _verticalGuideOffsets.addAll(
+          _collectGuideCoordinatesForDelta(
+            candidates: verticalCandidates,
+            delta: snappedDelta,
+          ),
         );
+        isVerticalGuideVisible = _verticalGuideOffsets.isNotEmpty;
+        if (isVerticalGuideVisible) {
+          verticalGuideOffset = Offset(_verticalGuideOffsets.first, 0);
+        }
       }
 
-      if (horizontalOffset != null) {
-        horizontalGuideOffset = horizontalOffset;
-        isHorizontalGuideVisible = true;
+      final horizontalCandidate =
+          _selectBestAlignCandidate(horizontalCandidates);
+      if (horizontalCandidate != null &&
+          _horizontalSnapHelper.maybeSnap(
+            focal: detail.focalPoint.dy,
+            focalDelta: detail.focalPointDelta.dy,
+            offset: horizontalCandidate.snapKey,
+            threshold: snapThreshold,
+            releaseThreshold: alignReleaseThreshold,
+            positiveDirection: LayerLastPosition.top,
+            negativeDirection: LayerLastPosition.bottom,
+          )) {
+        final snappedDelta = horizontalCandidate.delta;
+        activeLayer.offset += Offset(0, snappedDelta);
 
-        activeLayer.offset = Offset(
-          activeLayer.offset.dx,
-          horizontalOffset.dy - localPointFromCenter.dy,
+        _horizontalGuideOffsets.addAll(
+          _collectGuideCoordinatesForDelta(
+            candidates: horizontalCandidates,
+            delta: snappedDelta,
+          ),
         );
+        isHorizontalGuideVisible = _horizontalGuideOffsets.isNotEmpty;
+        if (isHorizontalGuideVisible) {
+          horizontalGuideOffset = Offset(0, _horizontalGuideOffsets.first);
+        }
       }
     }
 
@@ -1187,26 +1310,86 @@ class LayerInteractionManager {
     final hasSpacingHighlights = _layerSpacingHighlightRects.isNotEmpty;
     final spacingChanged = !_areRectListsEqual(
         beforeSpacingHighlights, _layerSpacingHighlightRects);
+    final guidesChanged = !_areDoubleListsEqual(
+            beforeHorizontalGuides, _horizontalGuideOffsets) ||
+        !_areDoubleListsEqual(beforeVerticalGuides, _verticalGuideOffsets);
 
-    final hasChanged = isHorizontalGuideVisible != wasHorizontalGuideVisible ||
-        isVerticalGuideVisible != wasVerticalGuideVisible ||
-        spacingChanged;
+    final hasHorizontalGuides = _horizontalGuideOffsets.isNotEmpty;
+    final hasVerticalGuides = _verticalGuideOffsets.isNotEmpty;
+
+    final hasChanged = guidesChanged || spacingChanged;
 
     if (hasChanged) {
       _log.info(
-        'notify hGuide=$isHorizontalGuideVisible'
-        ' vGuide=$isVerticalGuideVisible'
+        'notify hGuideCount=${_horizontalGuideOffsets.length}'
+        ' vGuideCount=${_verticalGuideOffsets.length}'
         ' spacingRects=${_layerSpacingHighlightRects.length}',
       );
       helperLineCtrl.add(null);
 
-      if ((isHorizontalGuideVisible && !wasHorizontalGuideVisible) ||
-          (isVerticalGuideVisible && !wasVerticalGuideVisible) ||
+      if ((hasHorizontalGuides && !hadHorizontalGuides) ||
+          (hasVerticalGuides && !hadVerticalGuides) ||
           (hasSpacingHighlights && !hadSpacingHighlights)) {
         _log.info('firstHit haptic feedback');
         helperLinesCallbacks?.handleLayerAlignLineHit();
       }
     }
+  }
+
+  _LayerAlignSnapCandidate? _selectBestAlignCandidate(
+    List<_LayerAlignSnapCandidate> candidates,
+  ) {
+    if (candidates.isEmpty) return null;
+
+    var best = candidates.first;
+    const precision = 0.0001;
+
+    for (final candidate in candidates.skip(1)) {
+      final candidateDelta = candidate.delta.abs();
+      final bestDelta = best.delta.abs();
+
+      if (candidateDelta < bestDelta - precision) {
+        best = candidate;
+      }
+    }
+
+    return best;
+  }
+
+  List<double> _collectGuideCoordinatesForDelta({
+    required List<_LayerAlignSnapCandidate> candidates,
+    required double delta,
+  }) {
+    const precision = 0.0001;
+
+    return _deduplicateGuideCoordinates(
+      candidates
+          .where((candidate) => (candidate.delta - delta).abs() <= precision)
+          .map((candidate) => candidate.guideCoordinate),
+    );
+  }
+
+  List<double> _deduplicateGuideCoordinates(Iterable<double> coordinates) {
+    final uniqueCoordinates = <String, double>{};
+    for (final coordinate in coordinates) {
+      uniqueCoordinates[coordinate.toStringAsFixed(3)] = coordinate;
+    }
+
+    final values = uniqueCoordinates.values.toList()..sort();
+    return values;
+  }
+
+  bool _areDoubleListsEqual(List<double> first, List<double> second) {
+    if (first.length != second.length) return false;
+
+    const precision = 0.0001;
+    for (int i = 0; i < first.length; i++) {
+      if ((first[i] - second[i]).abs() > precision) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   _LayerSpacingGuidesResult _calculateLayerSpacingGuides({
@@ -1231,6 +1414,18 @@ class LayerInteractionManager {
       return _LayerSpacingGuidesResult.empty;
     }
 
+    final canvasBounds = Rect.fromCenter(
+      center: Offset.zero,
+      width: imageSize.width,
+      height: imageSize.height,
+    );
+
+    // Spacing guides are only meaningful within the image body.
+    if (!activeBounds.rect.overlaps(canvasBounds)) {
+      _log.info('skip: active layer outside image bounds');
+      return _LayerSpacingGuidesResult.empty;
+    }
+
     final otherBounds = <_LayerBoundsSnapshot>[];
     for (final layer in layerList) {
       if (layer == activeLayer) continue;
@@ -1241,26 +1436,22 @@ class LayerInteractionManager {
       }
     }
 
-    if (otherBounds.isEmpty) {
+    final inCanvasOtherBounds =
+        otherBounds.where((item) => item.rect.overlaps(canvasBounds)).toList();
+    if (inCanvasOtherBounds.isEmpty) {
       return _LayerSpacingGuidesResult.empty;
     }
 
-    final hasOverlap =
-        otherBounds.any((item) => item.rect.overlaps(activeBounds.rect));
+    final hasOverlap = inCanvasOtherBounds
+        .any((item) => item.rect.overlaps(activeBounds.rect));
     if (hasOverlap) {
       _log.info('skip: physical overlap with another layer');
       return _LayerSpacingGuidesResult.empty;
     }
 
-    final canvasBounds = Rect.fromCenter(
-      center: Offset.zero,
-      width: imageSize.width,
-      height: imageSize.height,
-    );
-
     var horizontalResult = _calculateHorizontalSpacingGuides(
       activeBounds: activeBounds,
-      otherBounds: otherBounds,
+      otherBounds: inCanvasOtherBounds,
       canvasBounds: canvasBounds,
       snapThreshold: snapThreshold,
     );
@@ -1278,7 +1469,7 @@ class LayerInteractionManager {
 
     var verticalResult = _calculateVerticalSpacingGuides(
       activeBounds: activeBounds,
-      otherBounds: otherBounds,
+      otherBounds: inCanvasOtherBounds,
       canvasBounds: canvasBounds,
       snapThreshold: snapThreshold,
     );
@@ -2008,8 +2199,12 @@ class LayerInteractionManager {
     required double distance,
     required double snapThreshold,
   }) {
+    // Snapping can use a wider threshold, but highlight cascade should only
+    // include truly equal spacings to avoid pulling in nearby-but-different
+    // gaps/margins.
+    final relatedTolerance = min(snapThreshold, 0.5);
     return references
-        .where((item) => (item.distance - distance).abs() <= snapThreshold)
+        .where((item) => (item.distance - distance).abs() <= relatedTolerance)
         .map((item) => item.highlightRect)
         .toList();
   }
@@ -2113,6 +2308,18 @@ class _LayerBoundsSnapshot {
 
   final Layer layer;
   final Rect rect;
+}
+
+class _LayerAlignSnapCandidate {
+  const _LayerAlignSnapCandidate({
+    required this.guideCoordinate,
+    required this.delta,
+    required this.snapKey,
+  });
+
+  final double guideCoordinate;
+  final double delta;
+  final Offset snapKey;
 }
 
 class _LayerSpacingReference {

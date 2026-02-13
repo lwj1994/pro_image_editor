@@ -1,5 +1,9 @@
 # Changelog
 
+## 12.1.4
+- **REFACTOR**(helper-lines): Render layer spacing highlights before other helper lines to keep a consistent visual stacking order.
+- **CHORE**(example): Enable vertical, horizontal, rotate, and layer-align helper lines in `LayerSpacingPaddingExample`.
+
 ## 12.1.3
 - **FIX**(helper-lines): Resolve asymmetric spacing snap/highlight in edge+gap base cases, ensuring both equal gaps are highlighted when dragging the left/top layer.
 - **FIX**(import-export): Add missing minified layer key mapping for `enableSpacingHighlight` to prevent assertion failures when importing minified history.

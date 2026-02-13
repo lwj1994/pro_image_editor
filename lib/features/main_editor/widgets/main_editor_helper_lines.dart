@@ -241,12 +241,9 @@ class MainEditorHelperLines extends StatelessWidget {
           key: ValueKey('Layer-Spacing-Highlight-$i'),
           left: (center.dx + rect.left) * scale,
           top: (center.dy + rect.top) * scale,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: _duration),
-            width: rect.width * scale,
-            height: rect.height * scale,
-            color: color,
-          ),
+          width: rect.width * scale,
+          height: rect.height * scale,
+          child: ColoredBox(color: color),
         ),
       );
     }

@@ -10,8 +10,11 @@ import '/core/models/editor_callbacks/main_editor/helper_lines/helper_lines_call
 import '/core/models/editor_configs/pro_image_editor_configs.dart';
 import '/core/models/history/last_layer_interaction_position.dart';
 import '/core/models/layers/layer.dart';
+import '/core/utils/logger.dart';
 import '/shared/utils/debounce.dart';
 import '/shared/utils/unique_id_generator.dart';
+
+const _log = Logger.paddingLine;
 
 /// A helper class responsible for managing layer interactions in the editor.
 ///
@@ -437,6 +440,8 @@ class LayerInteractionManager {
   Offset? _rotateScaleButtonStartPosition;
   final _horizontalSnapHelper = _LayerAlignGuideHelper();
   final _verticalSnapHelper = _LayerAlignGuideHelper();
+  final _horizontalSpacingSnapHelper = _LayerSpacingSnapHelper();
+  final _verticalSpacingSnapHelper = _LayerSpacingSnapHelper();
 
   /// Configuration settings for displaying and managing helper lines within
   /// the editor.
@@ -885,6 +890,8 @@ class LayerInteractionManager {
     isVerticalGuideVisible = false;
     isHorizontalGuideVisible = false;
     _layerSpacingHighlightRects.clear();
+    _horizontalSpacingSnapHelper.reset();
+    _verticalSpacingSnapHelper.reset();
     showHelperLines = false;
     hoverRemoveBtn = false;
   }
@@ -1157,6 +1164,8 @@ class LayerInteractionManager {
         editorBodySize: editorBodySize,
         imageSize: imageSize,
         snapThreshold: spacingSnapThreshold,
+        detail: detail,
+        releaseThreshold: releaseThreshold,
       );
 
       _layerSpacingHighlightRects
@@ -1164,6 +1173,10 @@ class LayerInteractionManager {
         ..addAll(spacingResult.highlightRects);
 
       if (spacingResult.snapDeltaX != 0 || spacingResult.snapDeltaY != 0) {
+        _log.info(
+          'applySnap dx=${spacingResult.snapDeltaX.toStringAsFixed(2)}'
+          ' dy=${spacingResult.snapDeltaY.toStringAsFixed(2)}',
+        );
         activeLayer.offset +=
             Offset(spacingResult.snapDeltaX, spacingResult.snapDeltaY);
       }
@@ -1180,11 +1193,17 @@ class LayerInteractionManager {
         spacingChanged;
 
     if (hasChanged) {
+      _log.info(
+        'notify hGuide=$isHorizontalGuideVisible'
+        ' vGuide=$isVerticalGuideVisible'
+        ' spacingRects=${_layerSpacingHighlightRects.length}',
+      );
       helperLineCtrl.add(null);
 
       if ((isHorizontalGuideVisible && !wasHorizontalGuideVisible) ||
           (isVerticalGuideVisible && !wasVerticalGuideVisible) ||
           (hasSpacingHighlights && !hadSpacingHighlights)) {
+        _log.info('firstHit haptic feedback');
         helperLinesCallbacks?.handleLayerAlignLineHit();
       }
     }
@@ -1196,6 +1215,8 @@ class LayerInteractionManager {
     required Size editorBodySize,
     required Size imageSize,
     required double snapThreshold,
+    required ScaleUpdateDetails detail,
+    required double releaseThreshold,
   }) {
     if (snapThreshold <= 0) {
       return _LayerSpacingGuidesResult.empty;
@@ -1227,6 +1248,7 @@ class LayerInteractionManager {
     final hasOverlap =
         otherBounds.any((item) => item.rect.overlaps(activeBounds.rect));
     if (hasOverlap) {
+      _log.info('skip: physical overlap with another layer');
       return _LayerSpacingGuidesResult.empty;
     }
 
@@ -1236,24 +1258,52 @@ class LayerInteractionManager {
       height: imageSize.height,
     );
 
-    final horizontalResult = _calculateHorizontalSpacingGuides(
+    var horizontalResult = _calculateHorizontalSpacingGuides(
       activeBounds: activeBounds,
       otherBounds: otherBounds,
       canvasBounds: canvasBounds,
       snapThreshold: snapThreshold,
     );
 
-    final verticalResult = _calculateVerticalSpacingGuides(
+    _log.info(
+      'hCalc delta=${horizontalResult.snapDelta.toStringAsFixed(2)}'
+      ' rects=${horizontalResult.highlightRects.length}',
+    );
+
+    horizontalResult = _horizontalSpacingSnapHelper.filter(
+      result: horizontalResult,
+      focal: detail.focalPoint.dx,
+      releaseThreshold: releaseThreshold,
+    );
+
+    var verticalResult = _calculateVerticalSpacingGuides(
       activeBounds: activeBounds,
       otherBounds: otherBounds,
       canvasBounds: canvasBounds,
       snapThreshold: snapThreshold,
+    );
+
+    _log.info(
+      'vCalc delta=${verticalResult.snapDelta.toStringAsFixed(2)}'
+      ' rects=${verticalResult.highlightRects.length}',
+    );
+
+    verticalResult = _verticalSpacingSnapHelper.filter(
+      result: verticalResult,
+      focal: detail.focalPoint.dy,
+      releaseThreshold: releaseThreshold,
     );
 
     final highlightRects = _deduplicateRects([
       ...horizontalResult.highlightRects,
       ...verticalResult.highlightRects,
     ]);
+
+    _log.info(
+      'result hDelta=${horizontalResult.snapDelta.toStringAsFixed(2)}'
+      ' vDelta=${verticalResult.snapDelta.toStringAsFixed(2)}'
+      ' highlights=${highlightRects.length}',
+    );
 
     return _LayerSpacingGuidesResult(
       snapDeltaX: horizontalResult.snapDelta,
@@ -1955,5 +2005,49 @@ class _LayerAlignGuideHelper {
     }
 
     return false;
+  }
+}
+
+class _LayerSpacingSnapHelper {
+  double? _snapFocal;
+  bool _released = false;
+
+  void reset() {
+    _snapFocal = null;
+    _released = false;
+  }
+
+  _LayerSpacingAxisResult filter({
+    required _LayerSpacingAxisResult result,
+    required double focal,
+    required double releaseThreshold,
+  }) {
+    final hasCandidate = result.highlightRects.isNotEmpty;
+
+    if (_snapFocal != null) {
+      final drift = (focal - _snapFocal!).abs();
+      if (drift > releaseThreshold) {
+        _log.info('snapHelper RELEASE drift=${drift.toStringAsFixed(2)}');
+        _released = true;
+        _snapFocal = null;
+        return _LayerSpacingAxisResult.empty;
+      }
+      if (hasCandidate) return result;
+      return _LayerSpacingAxisResult.empty;
+    }
+
+    if (!hasCandidate) {
+      _released = false;
+      return result;
+    }
+
+    if (_released) {
+      _log.info('snapHelper BLOCKED (released, waiting leave zone)');
+      return _LayerSpacingAxisResult.empty;
+    }
+
+    _log.info('snapHelper ENGAGE focal=${focal.toStringAsFixed(2)}');
+    _snapFocal = focal;
+    return result;
   }
 }

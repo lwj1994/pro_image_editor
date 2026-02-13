@@ -1,5 +1,9 @@
 # Changelog
 
+## 12.1.1
+- **FIX**(helper-lines): Fix spacing highlight flickering when layer is at exact snap position.
+- **FIX**(helper-lines): Fix layer movement being locked to single axis during spacing snap.
+
 ## 12.1.0
 - **FEAT**(layer): Add `enableSpacingHighlight` property to `Layer` class.
   - Allows subclasses to opt out of equal-spacing snap and highlight detection by setting `enableSpacingHighlight: false`.

@@ -1,5 +1,8 @@
 # Changelog
 
+## 12.1.2
+- **FIX**(helper-lines): Fix spacing highlight rects incorrectly covering the active layer body and extending beyond adjacent layers.
+
 ## 12.1.1
 - **FIX**(helper-lines): Fix spacing highlight flickering when layer is at exact snap position.
 - **FIX**(helper-lines): Fix layer movement being locked to single axis during spacing snap.

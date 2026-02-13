@@ -1548,9 +1548,19 @@ class LayerInteractionManager {
       return _LayerSpacingAxisResult.empty;
     }
 
+    final targetRect = activeBounds.rect.translate(bestCandidate!.delta, 0);
+    final allLayerRects = [
+      targetRect,
+      ...otherBounds.map((b) => b.rect),
+    ];
+    final clippedRects = _clipRectsExcludingLayers(
+      rects: bestCandidate!.highlightRects,
+      layerRects: allLayerRects,
+    );
+
     return _LayerSpacingAxisResult(
       snapDelta: bestCandidate!.delta,
-      highlightRects: bestCandidate!.highlightRects,
+      highlightRects: clippedRects,
     );
   }
 
@@ -1792,9 +1802,19 @@ class LayerInteractionManager {
       return _LayerSpacingAxisResult.empty;
     }
 
+    final targetRect = activeBounds.rect.translate(0, bestCandidate!.delta);
+    final allLayerRects = [
+      targetRect,
+      ...otherBounds.map((b) => b.rect),
+    ];
+    final clippedRects = _clipRectsExcludingLayers(
+      rects: bestCandidate!.highlightRects,
+      layerRects: allLayerRects,
+    );
+
     return _LayerSpacingAxisResult(
       snapDelta: bestCandidate!.delta,
-      highlightRects: bestCandidate!.highlightRects,
+      highlightRects: clippedRects,
     );
   }
 
@@ -1860,6 +1880,53 @@ class LayerInteractionManager {
         .where((item) => (item.distance - distance).abs() <= snapThreshold)
         .map((item) => item.highlightRect)
         .toList();
+  }
+
+  /// Clips highlight rects so they do not overlap any layer rect.
+  /// This ensures highlights only cover actual empty gaps.
+  List<Rect> _clipRectsExcludingLayers({
+    required List<Rect> rects,
+    required List<Rect> layerRects,
+  }) {
+    var result = rects;
+    for (final layerRect in layerRects) {
+      final clipped = <Rect>[];
+      for (final rect in result) {
+        if (!rect.overlaps(layerRect)) {
+          clipped.add(rect);
+          continue;
+        }
+        // Top portion
+        if (rect.top < layerRect.top) {
+          clipped.add(
+            Rect.fromLTRB(rect.left, rect.top, rect.right, layerRect.top),
+          );
+        }
+        // Bottom portion
+        if (rect.bottom > layerRect.bottom) {
+          clipped.add(
+            Rect.fromLTRB(rect.left, layerRect.bottom, rect.right, rect.bottom),
+          );
+        }
+        // Left portion (middle band only, not covered by top/bottom)
+        final midTop = max(rect.top, layerRect.top);
+        final midBottom = min(rect.bottom, layerRect.bottom);
+        if (midBottom > midTop) {
+          if (rect.left < layerRect.left) {
+            clipped.add(
+              Rect.fromLTRB(rect.left, midTop, layerRect.left, midBottom),
+            );
+          }
+          if (rect.right > layerRect.right) {
+            clipped.add(
+              Rect.fromLTRB(layerRect.right, midTop, rect.right, midBottom),
+            );
+          }
+        }
+      }
+      result = clipped.where((r) => r.width > 0 && r.height > 0).toList();
+    }
+    return result;
   }
 
   List<Rect> _deduplicateRects(List<Rect> rects) {

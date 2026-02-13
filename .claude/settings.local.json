@@ -10,7 +10,10 @@
       "Bash(bash:*)",
       "Bash(flutter test:*)",
       "Bash(flutter pub publish:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(dart analyze:*)",
+      "Bash(dart format:*)"
     ]
   }
 }

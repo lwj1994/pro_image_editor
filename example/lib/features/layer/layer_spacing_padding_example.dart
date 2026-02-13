@@ -204,6 +204,10 @@ class _LayerSpacingPaddingExampleState extends State<LayerSpacingPaddingExample>
       configs: ProImageEditorConfigs(
         designMode: platformDesignMode,
         helperLines: const HelperLineConfigs(
+          showVerticalLine: true,
+          showHorizontalLine: true,
+          showRotateLine: true,
+          showLayerAlignLine: true,
           showLayerSpacingLine: true,
           layerSpacingSnapThreshold: 7,
           style: HelperLineStyle(

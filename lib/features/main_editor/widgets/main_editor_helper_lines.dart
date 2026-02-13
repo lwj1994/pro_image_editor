@@ -81,6 +81,8 @@ class MainEditorHelperLines extends StatelessWidget {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
+                      if (helperLines.showLayerSpacingLine)
+                        ..._buildLayerSpacingHighlights(scale, editorBodySize),
                       if (helperLines.showVerticalLine)
                         _buildLine(
                           key: const ValueKey('Screen-Vertical-Guide-Line'),
@@ -118,8 +120,6 @@ class MainEditorHelperLines extends StatelessWidget {
                         _buildRotateLine(scale, screenSize.height * 2),
                       if (helperLines.showLayerAlignLine)
                         ..._buildLayerAlignLines(scale, screenSize),
-                      if (helperLines.showLayerSpacingLine)
-                        ..._buildLayerSpacingHighlights(scale, editorBodySize),
                     ],
                   ),
                 );

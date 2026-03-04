@@ -1,5 +1,38 @@
 # Changelog
 
+## 12.1.5
+- **FEAT**(helper-lines): Add layer edge alignment snap support for both same-side and opposite-side edges (left/right, top/bottom).
+- **FEAT**(helper-lines): Allow multiple layer-align guide lines to render simultaneously when multiple align conditions are satisfied.
+- **FIX**(helper-lines): Improve layer-align guide release responsiveness during small-step drags.
+- **TEST**(helper-lines): Add regression coverage for edge align, multi-guide rendering, and release behavior.
+- **CHORE**(example): Expand layer helper-line example to demonstrate edge alignment and spacing highlights together.
+
+## 12.1.4
+- **REFACTOR**(helper-lines): Render layer spacing highlights before other helper lines to keep a consistent visual stacking order.
+- **CHORE**(example): Enable vertical, horizontal, rotate, and layer-align helper lines in `LayerSpacingPaddingExample`.
+
+## 12.1.3
+- **FIX**(helper-lines): Resolve asymmetric spacing snap/highlight in edge+gap base cases, ensuring both equal gaps are highlighted when dragging the left/top layer.
+- **FIX**(import-export): Add missing minified layer key mapping for `enableSpacingHighlight` to prevent assertion failures when importing minified history.
+- **CHORE**(logger): Disable package logs by default and enable them explicitly in `example` and `test` environments.
+- **TEST**(helper-lines): Add spacing regression coverage for margin-gap snap, non-overlap exclusion, cascade highlight, midpoint snap, overlap suppression, and vertical symmetry.
+
+## 12.1.2
+- **FIX**(helper-lines): Fix spacing highlight rects incorrectly covering the active layer body and extending beyond adjacent layers.
+
+## 12.1.1
+- **FIX**(helper-lines): Fix spacing highlight flickering when layer is at exact snap position.
+- **FIX**(helper-lines): Fix layer movement being locked to single axis during spacing snap.
+
+## 12.1.0
+- **FEAT**(layer): Add `enableSpacingHighlight` property to `Layer` class.
+  - Allows subclasses to opt out of equal-spacing snap and highlight detection by setting `enableSpacingHighlight: false`.
+  - Layers with this flag disabled are excluded from all spacing/alignment highlight calculations.
+  - Default: `true` (backward compatible).
+- **FIX**(helper-lines): Limit spacing highlight area to background image bounds instead of full canvas.
+  - Edge-distance calculations now use the decoded image size, ensuring highlights stay within the image body.
+- **FIX**(layer-copy): Preserve `enableSpacingHighlight` when copying layers via `LayerCopyManager`.
+
 ## 12.0.0
 - **BREAKING** **FEAT**(callbacks): Enhanced `onTap` callback in `MainEditorCallbacks` to provide tap coordinates and the hit layer.
   - The signature changed from `Function()?` to `Function(Offset localPosition, Layer? layer)?`.

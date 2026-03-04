@@ -13,8 +13,10 @@ class HelperLineConfigs {
     this.showHorizontalLine = true,
     this.showRotateLine = true,
     this.showLayerAlignLine = true,
+    this.showLayerSpacingLine = true,
     this.isDisabledAtZoom = false,
     this.releaseThreshold = 10.0,
+    this.layerSpacingSnapThreshold = 6.0,
     this.style = const HelperLineStyle(),
   });
 
@@ -29,6 +31,10 @@ class HelperLineConfigs {
 
   /// Specifies whether to show the layer align helper line.
   final bool showLayerAlignLine;
+
+  /// Specifies whether to show spacing highlights (gap/margin blocks) and
+  /// enable equal-spacing snapping.
+  final bool showLayerSpacingLine;
 
   /// Determines whether the helper lines are disabled when the editor is
   /// zoomed in.
@@ -46,6 +52,9 @@ class HelperLineConfigs {
   /// released from a helper line for the snapping effect to be deactivated.
   final double releaseThreshold;
 
+  /// Snap threshold for equal-spacing detection in logical pixels.
+  final double layerSpacingSnapThreshold;
+
   /// Creates a copy of this `HelperLineConfigs` object with the given fields
   /// replaced with new values.
   ///
@@ -57,8 +66,10 @@ class HelperLineConfigs {
     bool? showHorizontalLine,
     bool? showRotateLine,
     bool? showLayerAlignLine,
+    bool? showLayerSpacingLine,
     bool? isDisabledAtZoom,
     double? releaseThreshold,
+    double? layerSpacingSnapThreshold,
     HelperLineStyle? style,
   }) {
     return HelperLineConfigs(
@@ -66,8 +77,11 @@ class HelperLineConfigs {
       showHorizontalLine: showHorizontalLine ?? this.showHorizontalLine,
       showRotateLine: showRotateLine ?? this.showRotateLine,
       showLayerAlignLine: showLayerAlignLine ?? this.showLayerAlignLine,
+      showLayerSpacingLine: showLayerSpacingLine ?? this.showLayerSpacingLine,
       isDisabledAtZoom: isDisabledAtZoom ?? this.isDisabledAtZoom,
       releaseThreshold: releaseThreshold ?? this.releaseThreshold,
+      layerSpacingSnapThreshold:
+          layerSpacingSnapThreshold ?? this.layerSpacingSnapThreshold,
       style: style ?? this.style,
     );
   }

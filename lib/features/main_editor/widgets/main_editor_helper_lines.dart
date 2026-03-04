@@ -81,6 +81,8 @@ class MainEditorHelperLines extends StatelessWidget {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
+                      if (helperLines.showLayerSpacingLine)
+                        ..._buildLayerSpacingHighlights(scale, editorBodySize),
                       if (helperLines.showVerticalLine)
                         _buildLine(
                           key: const ValueKey('Screen-Vertical-Guide-Line'),
@@ -177,40 +179,79 @@ class MainEditorHelperLines extends StatelessWidget {
     final editorCenter = sizesManager.bodySize / 2;
     const halfStroke = _strokeWidth / 2;
 
-    final verticalOffset = (editorCenter.width +
-            layerInteractionManager.verticalGuideOffset.dx -
-            halfStroke) *
-        scale;
+    if (_isLayerInRemovalZone) {
+      return [];
+    }
 
-    final horizontalOffset = (editorCenter.height +
-            layerInteractionManager.horizontalGuideOffset.dy -
-            halfStroke) *
-        scale;
+    final horizontalGuides = layerInteractionManager.horizontalGuideOffsets;
+    final verticalGuides = layerInteractionManager.verticalGuideOffsets;
+    final widgets = <Widget>[];
 
-    final showHorizontal = layerInteractionManager.isHorizontalGuideVisible &&
-        !_isLayerInRemovalZone;
-    final showVertical = layerInteractionManager.isVerticalGuideVisible &&
-        !_isLayerInRemovalZone;
-
-    return [
-      if (showHorizontal)
+    for (int i = 0; i < horizontalGuides.length; i++) {
+      final horizontalOffset =
+          (editorCenter.height + horizontalGuides[i] - halfStroke) * scale;
+      widgets.add(
         _buildLine(
-          key: const ValueKey('Horizontal-Guide-Line'),
+          key: ValueKey('Horizontal-Guide-Line-$i'),
           width: screenSize.width * scale,
           height: _strokeWidth,
           top: horizontalOffset,
           left: 0,
           color: helperLines.style.layerAlignColor,
         ),
-      if (showVertical)
+      );
+    }
+
+    for (int i = 0; i < verticalGuides.length; i++) {
+      final verticalOffset =
+          (editorCenter.width + verticalGuides[i] - halfStroke) * scale;
+      widgets.add(
         _buildLine(
-          key: const ValueKey('Vertical-Guide-Line'),
+          key: ValueKey('Vertical-Guide-Line-$i'),
           width: _strokeWidth,
           height: screenSize.height * scale,
           top: 0,
           left: verticalOffset,
           color: helperLines.style.layerAlignColor,
         ),
-    ];
+      );
+    }
+
+    return widgets;
+  }
+
+  List<Widget> _buildLayerSpacingHighlights(double scale, Size editorSize) {
+    if (_isLayerInRemovalZone) {
+      return [];
+    }
+
+    final highlights = layerInteractionManager.layerSpacingHighlightRects;
+    if (highlights.isEmpty) {
+      return [];
+    }
+
+    final center = editorSize.center(Offset.zero);
+    final color = helperLines.style.layerSpacingColor;
+
+    final widgets = <Widget>[];
+    for (int i = 0; i < highlights.length; i++) {
+      final rect = highlights[i];
+      if (rect.width <= 0 || rect.height <= 0) {
+        continue;
+      }
+
+      widgets.add(
+        Positioned(
+          key: ValueKey('Layer-Spacing-Highlight-$i'),
+          left: (center.dx + rect.left) * scale,
+          top: (center.dy + rect.top) * scale,
+          width: rect.width * scale,
+          height: rect.height * scale,
+          child: ColoredBox(color: color),
+        ),
+      );
+    }
+
+    return widgets;
   }
 }

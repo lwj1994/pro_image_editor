@@ -1263,6 +1263,8 @@ class ProImageEditorState extends State<ProImageEditor>
     if (pointerCount == 1) {
       layerInteractionManager.calculateMovement(
         editorScaleFactor: editorScaleFactor,
+        editorBodySize: sizesManager.bodySize,
+        imageSize: sizesManager.decodedImageSize,
         removeAreaKey: _removeAreaKey,
         selectedLayers: selectedLayers,
         layerList: activeLayers,

@@ -2,12 +2,12 @@
 import 'dart:async';
 import 'dart:js_interop' as js;
 
-import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 
 import '/core/constants/editor_web_constants.dart';
 import '/core/models/multi_threading/thread_request_model.dart';
 import '/core/models/multi_threading/thread_response_model.dart';
+import '/core/utils/logger.dart';
 import '../utils/web_worker_utils.dart';
 import 'thread.dart';
 
@@ -63,14 +63,22 @@ class WebWorkerThread extends Thread {
               id: dartId,
             ));
           } catch (e) {
-            debugPrint(e.toString());
+            Logger.log(
+              tag: 'WebWorkerThread',
+              level: LoggerLevel.error,
+              message: e.toString(),
+            );
           }
         }.toJS;
 
         readyState.complete(true);
         isReady = true;
       } else {
-        debugPrint('Your browser doesn\'t support web workers.');
+        Logger.log(
+          tag: 'WebWorkerThread',
+          level: LoggerLevel.warning,
+          message: 'Your browser doesn\'t support web workers.',
+        );
         readyState.complete(false);
       }
     } catch (e) {

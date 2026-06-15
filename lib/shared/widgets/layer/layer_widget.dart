@@ -14,6 +14,7 @@ import '/core/models/editor_callbacks/pro_image_editor_callbacks.dart';
 import '/core/models/editor_configs/pro_image_editor_configs.dart';
 import '/core/models/layers/layer.dart';
 import '/core/services/gesture_manager.dart';
+import '/core/utils/logger.dart';
 import '/features/main_editor/services/layer_interaction_manager.dart';
 import '/features/main_editor/services/main_editor_layers_service.dart';
 import '/features/paint_editor/enums/paint_editor_enum.dart';
@@ -173,6 +174,21 @@ class _LayerWidgetState extends State<LayerWidget>
     super.dispose();
   }
 
+  void _debugDoodleHitLog(String message) {
+    if (!_layer.isPaintLayer) return;
+
+    final paintLayer = _layer as PaintLayer;
+    Logger.log(
+      tag: 'DoodleHit.LayerWidget',
+      level: LoggerLevel.debug,
+      message: 'id=${_layer.id} '
+          'type=$_layerType '
+          'selected=$_isSelected '
+          'itemHit=${paintLayer.item.hit} '
+          '$message',
+    );
+  }
+
   /// Handles a secondary tap up event, typically for showing a context menu.
   void _onSecondaryTapUp(TapUpDetails details) {
     if (_isOutsideHitBox() || GestureManager.instance.isBlocked) return;
@@ -188,7 +204,10 @@ class _LayerWidgetState extends State<LayerWidget>
 
   /// Handles a pointer down event on the layer.
   void _onPointerDown(PointerDownEvent event) {
-    if (GestureManager.instance.isBlocked) return;
+    if (GestureManager.instance.isBlocked) {
+      _debugDoodleHitLog('pointerDown blockedByGestureManager');
+      return;
+    }
     bool isLayerSelected = _isSelected;
 
     _lastDownEvent = event;
@@ -196,7 +215,17 @@ class _LayerWidgetState extends State<LayerWidget>
     _temporaryLayerHash = _layer.hashCode;
     _tapDownTimestamp = DateTime.now();
 
-    if (_isOutsideHitBox()) return;
+    final outsideHitBox = _isOutsideHitBox();
+    _debugDoodleHitLog(
+      'pointerDown '
+      'position=${event.position} '
+      'local=${event.localPosition} '
+      'outsideHitBox=$outsideHitBox '
+      'enableSelection=${_layer.interaction.enableSelection} '
+      'enableEdit=${_layer.interaction.enableEdit}',
+    );
+
+    if (outsideHitBox) return;
     if (!isDesktop || event.buttons != kSecondaryMouseButton) {
       _layersService?.handleTapDown(_layer, event);
     }
@@ -224,7 +253,10 @@ class _LayerWidgetState extends State<LayerWidget>
   /// Handles a pointer up event on the layer.
   void _onPointerUp(PointerUpEvent event) {
     _longPressTimer?.cancel();
-    if (GestureManager.instance.isBlocked) return;
+    if (GestureManager.instance.isBlocked) {
+      _debugDoodleHitLog('pointerUp blockedByGestureManager');
+      return;
+    }
     // Notify optional onTapUp callback
     _layersService?.handleTapUp(_layer);
 
@@ -234,7 +266,10 @@ class _LayerWidgetState extends State<LayerWidget>
     /// issues with this, please open a new issue.
 
     // Cancel if down position is not set
-    if (_lastDownEvent == null) return;
+    if (_lastDownEvent == null) {
+      _debugDoodleHitLog('pointerUp ignored=noLastDownEvent');
+      return;
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final interaction = _layer.interaction;
@@ -244,10 +279,24 @@ class _LayerWidgetState extends State<LayerWidget>
           DateTime.now().difference(_tapDownTimestamp).inMilliseconds;
 
       // Ignore if pointer moved too much (exceeds tap slop)
-      if (offsetDistance >= tapSlop) return;
+      if (offsetDistance >= tapSlop) {
+        _debugDoodleHitLog(
+          'pointerUp ignored=tapSlop '
+          'offsetDistance=$offsetDistance '
+          'tapSlop=$tapSlop',
+        );
+        return;
+      }
 
       // Ignore if tap took too long (not a quick tap)
-      if (timeElapsed > tapTimeElapsed) return;
+      if (timeElapsed > tapTimeElapsed) {
+        _debugDoodleHitLog(
+          'pointerUp ignored=tapTimeout '
+          'timeElapsed=$timeElapsed '
+          'limit=$tapTimeElapsed',
+        );
+        return;
+      }
 
       // Fire onTap only if selection/edit is enabled and pointer is inside hit box
       final bool canSelect = interaction.enableSelection;
@@ -257,6 +306,12 @@ class _LayerWidgetState extends State<LayerWidget>
       final bool isTextLayer = _layerType == LayerWidgetType.text;
 
       if (!(canSelect || canEdit)) {
+        _debugDoodleHitLog(
+          'pointerUp ignored=notSelectable '
+          'canSelect=$canSelect '
+          'canEdit=$canEdit '
+          'insideHitBox=$insideHitBox',
+        );
         return;
       }
 
@@ -267,7 +322,22 @@ class _LayerWidgetState extends State<LayerWidget>
       final bool stylusTextBypass = isStylus && isTextLayer;
 
       if (insideHitBox || stylusTextBypass) {
+        _debugDoodleHitLog(
+          'pointerUp select '
+          'canSelect=$canSelect '
+          'canEdit=$canEdit '
+          'insideHitBox=$insideHitBox '
+          'stylusTextBypass=$stylusTextBypass',
+        );
         _layersService?.handleLayerTap(_layer, _lastDownEvent!);
+      } else {
+        _debugDoodleHitLog(
+          'pointerUp ignored=outsideHitBox '
+          'canSelect=$canSelect '
+          'canEdit=$canEdit '
+          'insideHitBox=$insideHitBox '
+          'stylusTextBypass=$stylusTextBypass',
+        );
       }
     });
   }
@@ -283,7 +353,14 @@ class _LayerWidgetState extends State<LayerWidget>
 
   /// Checks if the hit is outside the canvas for certain types of layers.
   bool _isHitOutsideInCanvas() {
-    return _layer.isPaintLayer && !(_layer as PaintLayer).item.hit;
+    if (!_layer.isPaintLayer) return false;
+
+    // Treat saved doodles as regular rectangular layers in the main editor.
+    // The path-level hit test is still used by the paint editor itself for
+    // editing and erasing strokes.
+    if (_layerType == LayerWidgetType.canvas) return false;
+
+    return !(_layer as PaintLayer).item.hit;
   }
 
   /// Checks if the hit is outside the canvas for certain types of layers.
@@ -464,8 +541,7 @@ class _LayerWidgetState extends State<LayerWidget>
         content = LayerWidgetPaintItem(
           layer: _layer as PaintLayer,
           isSelected: _isSelected,
-          enableHitDetection:
-              _layerInteractionManager?.enabledHitDetection ?? false,
+          enableHitDetection: false,
           onHitChanged: (state) {
             _lastHitState.value = state;
           },

@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import '/core/models/editor_configs/pro_image_editor_configs.dart';
 import '/core/models/multi_threading/thread_capture_model.dart';
 import '/core/models/multi_threading/thread_request_model.dart';
+import '/core/utils/logger.dart';
 import '/plugins/mime/mime.dart';
 import '/shared/utils/decode_image.dart';
 import '/shared/utils/unique_id_generator.dart';
@@ -314,7 +315,11 @@ class ContentRecorderController {
         );
       }
     } catch (e) {
-      debugPrint(e.toString());
+      Logger.log(
+        tag: 'ContentRecorderController',
+        level: LoggerLevel.error,
+        message: e.toString(),
+      );
 
       // Take a new screenshot when something went wrong.
       bytes = widget == null

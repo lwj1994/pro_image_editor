@@ -797,7 +797,11 @@ class CropRotateEditorState extends State<CropRotateEditor>
       int retry = 0;
       do {
         if (retry > 0) {
-          debugPrint('Generation failed! Retry $retry');
+          Logger.log(
+            tag: 'CropRotateEditor',
+            level: LoggerLevel.warning,
+            message: 'Generation failed! Retry $retry',
+          );
 
           /// Cooldown for the case the image generation failed
           await Future.delayed(const Duration(milliseconds: 500));
@@ -819,7 +823,11 @@ class CropRotateEditorState extends State<CropRotateEditor>
       } while (bytes == null && retry < 7 && mounted);
 
       if (bytes == null) {
-        debugPrint('Failed to capture the final image.');
+        Logger.log(
+          tag: 'CropRotateEditor',
+          level: LoggerLevel.error,
+          message: 'Failed to capture the final image.',
+        );
       }
 
       if (!mounted) return;
@@ -1981,7 +1989,11 @@ class CropRotateEditorState extends State<CropRotateEditor>
           if (kDebugMode) {
             throw ArgumentError('Invalid cursor number!');
           } else {
-            debugPrint('Invalid cursor number!');
+            Logger.log(
+              tag: 'CropRotateEditor',
+              level: LoggerLevel.error,
+              message: 'Invalid cursor number!',
+            );
             return SystemMouseCursors.basic;
           }
       }
@@ -2020,7 +2032,11 @@ class CropRotateEditorState extends State<CropRotateEditor>
           if (kDebugMode) {
             throw ArgumentError('Invalid cursor number!');
           } else {
-            debugPrint('Invalid cursor number!');
+            Logger.log(
+              tag: 'CropRotateEditor',
+              level: LoggerLevel.error,
+              message: 'Invalid cursor number!',
+            );
             return SystemMouseCursors.basic;
           }
       }

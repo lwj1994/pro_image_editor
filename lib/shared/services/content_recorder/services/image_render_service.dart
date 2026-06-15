@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '/core/models/editor_configs/image_generation_configs/image_generation_configs.dart';
+import '/core/utils/logger.dart';
 import '/shared/utils/decode_image.dart';
 import '/shared/widgets/extended/repaint/extended_render_repaint_boundary.dart';
 
@@ -97,7 +98,11 @@ class ImageRenderService {
 
       return image;
     } catch (e) {
-      debugPrint('Failed to read image data: ${e.toString()}');
+      Logger.log(
+        tag: 'ImageRenderService',
+        level: LoggerLevel.error,
+        message: 'Failed to read image data: $e',
+      );
       return null;
     }
   }

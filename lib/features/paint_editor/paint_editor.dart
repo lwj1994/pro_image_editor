@@ -290,6 +290,15 @@ class PaintEditorState extends State<PaintEditor>
   /// history is currently active.
   PaintEditorResponse get activeHistory => stateHistory[historyPointer];
 
+  String _debugLayerSummary(List<Layer> layers) {
+    return layers.map((layer) {
+      final type = layer.isPaintLayer
+          ? 'paint:${(layer as PaintLayer).item.mode}'
+          : layer.runtimeType;
+      return '${layer.id}($type)';
+    }).join(',');
+  }
+
   /// Determines whether undo can be performed on the current state.
   bool get canUndo => historyPointer > 0;
 
@@ -299,6 +308,13 @@ class PaintEditorState extends State<PaintEditor>
   @override
   void initState() {
     super.initState();
+    Logger.log(
+      tag: 'DoodleEraser.PaintEditor.init',
+      level: LoggerLevel.debug,
+      message: 'showLayers=${paintEditorConfigs.showLayers} '
+          'eraserMode=${paintEditorConfigs.eraserMode} '
+          'initLayers=${_debugLayerSummary(layers ?? [])}',
+    );
     paintCtrl = PaintController(
       fill: paintEditorConfigs.isInitiallyFilled,
       mode: paintEditorConfigs.initialPaintMode,
@@ -662,6 +678,18 @@ class PaintEditorState extends State<PaintEditor>
             ..offset *= scale
             ..scale *= scale;
         }).toList();
+        final removedLayerSummary =
+            _debugLayerSummary(activeHistory.removedLayers);
+        Logger.log(
+          tag: 'DoodleEraser.PaintEditor.done',
+          level: LoggerLevel.debug,
+          message: 'historyPointer=$historyPointer '
+              'stateHistoryLength=${stateHistory.length} '
+              'originalPaintLayers=${_debugLayerSummary(originalLayers)} '
+              'activeLayers=${_debugLayerSummary(activeHistory.layers)} '
+              'returnLayers=${_debugLayerSummary(transformedLayers)} '
+              'removedLayers=$removedLayerSummary',
+        );
         Navigator.of(context).pop(PaintEditorResponse(
           layers: transformedLayers,
           removedLayers: activeHistory.removedLayers,
@@ -946,6 +974,9 @@ class PaintEditorState extends State<PaintEditor>
   }
 
   List<Widget> _buildInteractiveContent() {
+    final enableExternalPaintGestureZoom =
+        paintEditorConfigs.enableZoom && paintMode != PaintMode.moveAndZoom;
+
     return [
       Listener(
         behavior: HitTestBehavior.translucent,
@@ -963,7 +994,9 @@ class PaintEditorState extends State<PaintEditor>
               ? initConfigs.initialZoomMatrix
               : null,
           zoomConfigs: paintEditorConfigs,
-          enableInteraction: paintMode == PaintMode.moveAndZoom,
+          enableInteraction: paintMode == PaintMode.moveAndZoom ||
+              enableExternalPaintGestureZoom,
+          enableExternalGestureDetector: enableExternalPaintGestureZoom,
           onInteractionStart: (details) {
             callbacks.paintEditorCallbacks?.onEditorZoomScaleStart
                 ?.call(details);
@@ -1097,6 +1130,15 @@ class PaintEditorState extends State<PaintEditor>
       layers: activeHistory.layers,
       eraserMode: eraserMode,
       eraserRadius: eraserRadius,
+      onMultiTouchScaleStart: (details) {
+        interactiveViewer.currentState?.onScaleStart(details);
+      },
+      onMultiTouchScaleUpdate: (details) {
+        interactiveViewer.currentState?.onScaleUpdate(details);
+      },
+      onMultiTouchScaleEnd: (details) {
+        interactiveViewer.currentState?.onScaleEnd(details);
+      },
       onTap: (details) =>
           callbacks.paintEditorCallbacks?.onTap?.call(this, details),
       onRemoveLayer: (removeIdList) {
@@ -1114,6 +1156,20 @@ class PaintEditorState extends State<PaintEditor>
 
         if (updatedList.length == activeHistory.layers.length) return;
 
+        final previousRemovedSummary =
+            _debugLayerSummary(activeHistory.removedLayers);
+        Logger.log(
+          tag: 'DoodleEraser.PaintEditor.objectRemove',
+          level: LoggerLevel.debug,
+          message: 'removeIds=${removeIdList.join(',')} '
+              'historyPointer=$historyPointer '
+              'stateHistoryLength=${stateHistory.length} '
+              'before=${_debugLayerSummary(activeHistory.layers)} '
+              'after=${_debugLayerSummary(updatedList)} '
+              'previousRemoved=$previousRemovedSummary '
+              'removed=${_debugLayerSummary(removedLayers)}',
+        );
+
         while (canRedo) {
           stateHistory.removeLast();
         }
@@ -1123,6 +1179,14 @@ class PaintEditorState extends State<PaintEditor>
           removedLayers: [...activeHistory.removedLayers, ...removedLayers],
         ));
         historyPointer++;
+        Logger.log(
+          tag: 'DoodleEraser.PaintEditor.objectRemoveHistory',
+          level: LoggerLevel.debug,
+          message: 'historyPointer=$historyPointer '
+              'stateHistoryLength=${stateHistory.length} '
+              'active=${_debugLayerSummary(activeHistory.layers)} '
+              'removed=${_debugLayerSummary(activeHistory.removedLayers)}',
+        );
         setState(() {});
 
         WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -1132,26 +1196,71 @@ class PaintEditorState extends State<PaintEditor>
       onRemovePartialStart: () {
         LayerCopyManager copyManager = LayerCopyManager();
 
-        final updatedList =
-            activeHistory.layers.whereType<PaintLayer>().map((layer) {
-          return copyManager.createCopyPaintLayer(layer);
-        });
+        final updatedLayerList = activeHistory.layers.map((layer) {
+          if (layer is PaintLayer) {
+            return copyManager.createCopyPaintLayer(layer);
+          }
+          return layer;
+        }).toList();
+
+        final preservedNonPaintLayers =
+            activeHistory.layers.where((layer) => !layer.isPaintLayer).toList();
+        final copiedPaintSummary = _debugLayerSummary(
+          updatedLayerList.whereType<PaintLayer>().toList(),
+        );
+        final preservedNonPaintSummary =
+            _debugLayerSummary(preservedNonPaintLayers);
+        Logger.log(
+          tag: 'DoodleEraser.PaintEditor.partialStart',
+          level: LoggerLevel.debug,
+          message: 'historyPointer=$historyPointer '
+              'stateHistoryLength=${stateHistory.length} '
+              'before=${_debugLayerSummary(activeHistory.layers)} '
+              'copiedPaintLayers=$copiedPaintSummary '
+              'preservedNonPaint=$preservedNonPaintSummary '
+              'after=${_debugLayerSummary(updatedLayerList)}',
+        );
 
         while (canRedo) {
           stateHistory.removeLast();
         }
         stateHistory.add(PaintEditorResponse(
-          layers: [...updatedList],
+          layers: [...updatedLayerList],
           removedLayers: [...activeHistory.removedLayers],
         ));
         historyPointer++;
+        Logger.log(
+          tag: 'DoodleEraser.PaintEditor.partialStartHistory',
+          level: LoggerLevel.debug,
+          message: 'historyPointer=$historyPointer '
+              'stateHistoryLength=${stateHistory.length} '
+              'active=${_debugLayerSummary(activeHistory.layers)} '
+              'removed=${_debugLayerSummary(activeHistory.removedLayers)}',
+        );
         setState(() {});
         WidgetsBinding.instance.drawFrame();
       },
       onRemovePartialEnd: (hasRemovedAreas) {
+        Logger.log(
+          tag: 'DoodleEraser.PaintEditor.partialEnd',
+          level: LoggerLevel.debug,
+          message: 'hasRemovedAreas=$hasRemovedAreas '
+              'historyPointer=$historyPointer '
+              'stateHistoryLength=${stateHistory.length} '
+              'active=${_debugLayerSummary(activeHistory.layers)} '
+              'removed=${_debugLayerSummary(activeHistory.removedLayers)}',
+        );
         if (!hasRemovedAreas) {
           historyPointer--;
           stateHistory.removeLast();
+          Logger.log(
+            tag: 'DoodleEraser.PaintEditor.partialEndRollback',
+            level: LoggerLevel.debug,
+            message: 'historyPointer=$historyPointer '
+                'stateHistoryLength=${stateHistory.length} '
+                'active=${_debugLayerSummary(activeHistory.layers)} '
+                'removed=${_debugLayerSummary(activeHistory.removedLayers)}',
+          );
           return;
         }
         WidgetsBinding.instance.addPostFrameCallback((_) async {

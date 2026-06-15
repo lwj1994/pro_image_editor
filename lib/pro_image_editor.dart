@@ -63,6 +63,7 @@ export 'shared/widgets/reactive_widgets/reactive_custom_widget.dart';
 export 'shared/widgets/extended/extended_pop_scope.dart';
 export 'core/constants/editor_style_constants.dart';
 export 'core/utils/image_converter.dart';
+export 'core/utils/logger.dart';
 export '/shared/utils/parser/int_parser.dart';
 export '/shared/utils/parser/double_parser.dart';
 export '/shared/utils/parser/size_parser.dart';

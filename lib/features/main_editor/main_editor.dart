@@ -1577,6 +1577,21 @@ class ProImageEditorState extends State<ProImageEditor>
   /// After closing the paint editor, any changes made are applied to the
   /// image's layers.
   void openPaintEditor() async {
+    String debugLayerSummary(List<Layer> layers) {
+      return layers.map((layer) {
+        final type = layer.isPaintLayer
+            ? 'paint:${(layer as PaintLayer).item.mode}'
+            : layer.runtimeType;
+        return '${layer.id}($type)';
+      }).join(',');
+    }
+
+    Logger.log(
+      tag: 'DoodleEraser.MainEditor.openPaintEditor',
+      level: LoggerLevel.debug,
+      message: 'activeLayers=${debugLayerSummary(activeLayers)}',
+    );
+
     var paintCallbacks =
         callbacks.paintEditorCallbacks ?? const PaintEditorCallbacks();
     var overridenPaintCallbacks = paintCallbacks.copyWith(
@@ -1618,7 +1633,22 @@ class ProImageEditorState extends State<ProImageEditor>
       duration: const Duration(milliseconds: 150),
     );
 
-    if (result == null) return;
+    if (result == null) {
+      Logger.log(
+        tag: 'DoodleEraser.MainEditor.paintResult',
+        level: LoggerLevel.debug,
+        message: 'result=null',
+      );
+      return;
+    }
+
+    Logger.log(
+      tag: 'DoodleEraser.MainEditor.paintResult',
+      level: LoggerLevel.debug,
+      message: 'returnLayers=${debugLayerSummary(result.layers)} '
+          'removedLayers=${debugLayerSummary(result.removedLayers)} '
+          'activeBeforeApply=${debugLayerSummary(activeLayers)}',
+    );
 
     String lastLayerId = '';
     for (var i = 0; i < result.layers.length; i++) {
@@ -1630,6 +1660,15 @@ class ProImageEditorState extends State<ProImageEditor>
         offset: Offset.zero,
       );
       lastLayerId = duplicatedLayer.id;
+      Logger.log(
+        tag: 'DoodleEraser.MainEditor.applyAdd',
+        level: LoggerLevel.debug,
+        message: 'index=$i '
+            'source=${debugLayerSummary([layer])} '
+            'duplicated=${debugLayerSummary([duplicatedLayer])} '
+            'oldIndex=$oldIndex '
+            'activeBeforeAdd=${debugLayerSummary(activeLayers)}',
+      );
       addLayer(
         duplicatedLayer,
         removeLayerIndex: oldIndex,
@@ -1638,10 +1677,32 @@ class ProImageEditorState extends State<ProImageEditor>
         autoCorrectZoomOffset: false,
         autoCorrectZoomScale: false,
       );
+      Logger.log(
+        tag: 'DoodleEraser.MainEditor.applyAddDone',
+        level: LoggerLevel.debug,
+        message: 'index=$i activeAfterAdd=${debugLayerSummary(activeLayers)}',
+      );
     }
     for (Layer layer in result.removedLayers) {
+      Logger.log(
+        tag: 'DoodleEraser.MainEditor.applyRemove',
+        level: LoggerLevel.debug,
+        message: 'target=${debugLayerSummary([layer])} '
+            'activeBeforeRemove=${debugLayerSummary(activeLayers)}',
+      );
       removeLayer(layer, blockCaptureScreenshot: true);
+      Logger.log(
+        tag: 'DoodleEraser.MainEditor.applyRemoveDone',
+        level: LoggerLevel.debug,
+        message: 'activeAfterRemove=${debugLayerSummary(activeLayers)}',
+      );
     }
+
+    Logger.log(
+      tag: 'DoodleEraser.MainEditor.applyDone',
+      level: LoggerLevel.debug,
+      message: 'activeAfterApply=${debugLayerSummary(activeLayers)}',
+    );
 
     if (lastLayerId.isNotEmpty) {
       _selectLayerAfterHeroIsDone(lastLayerId);

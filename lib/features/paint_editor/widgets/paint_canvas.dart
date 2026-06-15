@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '/core/models/editor_configs/paint_editor/paint_editor_configs.dart';
 import '/core/models/layers/layer.dart';
+import '/core/utils/logger.dart';
 import '/shared/widgets/censor/blur_area_item.dart';
 import '/shared/widgets/censor/pixelate_area_item.dart';
 import '../controllers/paint_controller.dart';
@@ -40,6 +41,9 @@ class PaintCanvas extends StatefulWidget {
     required this.layerStackScaleFactor,
     required this.eraserMode,
     required this.eraserRadius,
+    this.onMultiTouchScaleStart,
+    this.onMultiTouchScaleUpdate,
+    this.onMultiTouchScaleEnd,
   });
 
   /// Callback function when the active paint is done.
@@ -69,6 +73,15 @@ class PaintCanvas extends StatefulWidget {
 
   /// Callback to refresh the current state or view.
   final VoidCallback onRefresh;
+
+  /// Callback to forward a multi-touch gesture to the editor viewer.
+  final ValueChanged<ScaleStartDetails>? onMultiTouchScaleStart;
+
+  /// Callback to forward a multi-touch gesture update to the editor viewer.
+  final ValueChanged<ScaleUpdateDetails>? onMultiTouchScaleUpdate;
+
+  /// Callback to forward the end of a multi-touch gesture to the editor viewer.
+  final ValueChanged<ScaleEndDetails>? onMultiTouchScaleEnd;
 
   /// Size of the image.
   final Size drawAreaSize;
@@ -121,6 +134,8 @@ class PaintCanvasState extends State<PaintCanvas> {
   final _hitTestManager = PaintItemHitTestManager();
 
   bool _hasPartialErasedAreas = false;
+  bool _isMultiTouchTransforming = false;
+  bool _isEraserActive = false;
 
   bool get _isPartialEraser => widget.eraserMode == EraserMode.partial;
   bool get _isEraserMode => _paintCtrl.mode == PaintMode.eraser;
@@ -129,6 +144,59 @@ class PaintCanvasState extends State<PaintCanvas> {
       _paintCtrl.mode == PaintMode.freeStyleArrowStart ||
       _paintCtrl.mode == PaintMode.freeStyleArrowEnd ||
       _paintCtrl.mode == PaintMode.freeStyleArrowStartEnd;
+
+  bool get _canForwardMultiTouch =>
+      widget.paintEditorConfigs.enableZoom &&
+      widget.onMultiTouchScaleStart != null &&
+      widget.onMultiTouchScaleUpdate != null &&
+      widget.onMultiTouchScaleEnd != null;
+
+  void _cancelActivePaintForMultiTouch() {
+    if (_isEraserActive) {
+      if (_isPartialEraser) {
+        widget.onRemovePartialEnd(_hasPartialErasedAreas);
+      }
+      _isEraserActive = false;
+      _hasPartialErasedAreas = false;
+    }
+
+    _paintCtrl
+      ..setInProgress(false)
+      ..reset();
+    _activePaintStreamCtrl.add(null);
+  }
+
+  void _startMultiTouchTransform(ScaleStartDetails details) {
+    _cancelActivePaintForMultiTouch();
+    _isMultiTouchTransforming = true;
+    widget.onMultiTouchScaleStart?.call(details);
+  }
+
+  void _startMultiTouchTransformFromUpdate(ScaleUpdateDetails details) {
+    _startMultiTouchTransform(
+      ScaleStartDetails(
+        focalPoint: details.focalPoint,
+        localFocalPoint: details.localFocalPoint,
+        pointerCount: details.pointerCount,
+        sourceTimeStamp: details.sourceTimeStamp,
+      ),
+    );
+  }
+
+  String _debugLayerSummary(List<Layer> layers) {
+    return layers.map((layer) {
+      final type = layer.isPaintLayer
+          ? 'paint:${(layer as PaintLayer).item.mode}'
+          : layer.runtimeType;
+      return '${layer.id}($type)';
+    }).join(',');
+  }
+
+  String _debugNonPaintLayerSummary(List<Layer> layers) {
+    return layers.where((layer) => !layer.isPaintLayer).map((layer) {
+      return '${layer.id}(${layer.runtimeType})';
+    }).join(',');
+  }
 
   @override
   void initState() {
@@ -148,12 +216,28 @@ class PaintCanvasState extends State<PaintCanvas> {
   /// It is not meant to be called directly but is an event handler for scaling
   /// gestures.
   void _onScaleStart(ScaleStartDetails details) {
+    if (_canForwardMultiTouch && details.pointerCount >= 2) {
+      _startMultiTouchTransform(details);
+      return;
+    }
+
     final offset = details.localFocalPoint;
     switch (widget.paintCtrl.mode) {
       case PaintMode.moveAndZoom:
         return;
       case PaintMode.eraser:
+        Logger.log(
+          tag: 'DoodleEraser.PaintCanvas.start',
+          level: LoggerLevel.debug,
+          message: 'eraserMode=${widget.eraserMode} '
+              'pointerCount=${details.pointerCount} '
+              'localFocalPoint=${details.localFocalPoint} '
+              'layerStackScaleFactor=${widget.layerStackScaleFactor} '
+              'layers=${_debugLayerSummary(widget.layers)} '
+              'nonPaintLayers=${_debugNonPaintLayerSummary(widget.layers)}',
+        );
         _hasPartialErasedAreas = false;
+        _isEraserActive = true;
         widget.onRemovePartialStart();
         setState(() {});
         return;
@@ -178,6 +262,15 @@ class PaintCanvasState extends State<PaintCanvas> {
   /// It is not meant to be called directly but is an event handler for scaling
   /// gestures.
   void _onScaleUpdate(ScaleUpdateDetails details) {
+    if (_canForwardMultiTouch &&
+        (_isMultiTouchTransforming || details.pointerCount >= 2)) {
+      if (!_isMultiTouchTransforming) {
+        _startMultiTouchTransformFromUpdate(details);
+      }
+      widget.onMultiTouchScaleUpdate?.call(details);
+      return;
+    }
+
     switch (widget.paintCtrl.mode) {
       case PaintMode.moveAndZoom:
       case PaintMode.polygon:
@@ -214,10 +307,25 @@ class PaintCanvasState extends State<PaintCanvas> {
   /// It is not meant to be called directly but is an event handler for scaling
   /// gestures.
   void _onScaleEnd(ScaleEndDetails details) {
+    if (_isMultiTouchTransforming) {
+      _isMultiTouchTransforming = false;
+      widget.onMultiTouchScaleEnd?.call(details);
+      setState(() {});
+      return;
+    }
+
     if (widget.paintCtrl.mode == PaintMode.moveAndZoom) {
       return;
     } else if (widget.paintCtrl.mode == PaintMode.eraser) {
+      Logger.log(
+        tag: 'DoodleEraser.PaintCanvas.end',
+        level: LoggerLevel.debug,
+        message: 'eraserMode=${widget.eraserMode} '
+            'hasPartialErasedAreas=$_hasPartialErasedAreas '
+            'layers=${_debugLayerSummary(widget.layers)}',
+      );
       if (_isPartialEraser) widget.onRemovePartialEnd(_hasPartialErasedAreas);
+      _isEraserActive = false;
 
       return;
     }
@@ -264,6 +372,16 @@ class PaintCanvasState extends State<PaintCanvas> {
     final bool useRoundCensor =
         widget.paintEditorConfigs.censorConfigs.enableRoundArea;
 
+    Logger.log(
+      tag: 'DoodleEraser.PaintCanvas.processEraser',
+      level: LoggerLevel.debug,
+      message: 'eraserMode=${widget.eraserMode} '
+          'isPartial=$_isPartialEraser '
+          'focalPoint=$focalPoint '
+          'layers=${_debugLayerSummary(widget.layers)} '
+          'nonPaintLayers=${_debugNonPaintLayerSummary(widget.layers)}',
+    );
+
     for (var layer in widget.layers) {
       if (!layer.isPaintLayer) continue;
       final paintLayer = layer as PaintLayer;
@@ -292,6 +410,14 @@ class PaintCanvasState extends State<PaintCanvas> {
           ..toList();
         layer.item = layer.item.copy();
         _hasPartialErasedAreas = true;
+        Logger.log(
+          tag: 'DoodleEraser.PaintCanvas.partialApply',
+          level: LoggerLevel.debug,
+          message: 'layer=${layer.id} '
+              'mode=${layer.item.mode} '
+              'erasedOffsets=${layer.item.erasedOffsets.length} '
+              'position=$rotatedPosition',
+        );
       } else {
         bool hasHit = _hitTestManager.hitTest(
           item: paintLayer.item,
@@ -299,6 +425,17 @@ class PaintCanvasState extends State<PaintCanvas> {
           scaleFactor: stackScale * layerScale,
           isRoundCensorArea: useRoundCensor,
           paintEditorConfigs: widget.paintEditorConfigs,
+        );
+        Logger.log(
+          tag: 'DoodleEraser.PaintCanvas.objectHit',
+          level: LoggerLevel.debug,
+          message: 'layer=${layer.id} '
+              'mode=${layer.item.mode} '
+              'hit=$hasHit '
+              'position=$position '
+              'rawSize=${paintLayer.rawSize} '
+              'layerScale=$layerScale '
+              'stackScale=$stackScale',
         );
         if (hasHit) {
           removeIds.add(layer.id);
@@ -309,6 +446,11 @@ class PaintCanvasState extends State<PaintCanvas> {
     if (_isPartialEraser) {
       widget.onRefresh();
     } else if (removeIds.isNotEmpty) {
+      Logger.log(
+        tag: 'DoodleEraser.PaintCanvas.objectRemove',
+        level: LoggerLevel.debug,
+        message: 'removeIds=${removeIds.join(',')}',
+      );
       widget.onRemoveLayer(removeIds);
     }
   }

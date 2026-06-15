@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '/core/models/editor_configs/paint_editor/paint_editor_configs.dart';
+import '/core/utils/logger.dart';
 import '../models/painted_model.dart';
 import '../models/path_builder/path_builder_base.dart';
 import '../services/paint_item_hit_test_manager.dart';
@@ -65,6 +66,16 @@ class DrawPaintItem extends CustomPainter {
       isSelected: selected,
       scaleFactor: scale,
       paintEditorConfigs: paintEditorConfigs,
+    );
+    Logger.log(
+      tag: 'DoodleHit.DrawPaintItem',
+      level: LoggerLevel.debug,
+      message: 'mode=${item.mode} '
+          'enabledHitDetection=$enabledHitDetection '
+          'selected=$selected '
+          'scale=$scale '
+          'position=$position '
+          'hit=$hasHit',
     );
     onHitChanged?.call(hasHit);
     return hasHit;

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '/core/models/editor_configs/image_generation_configs/image_generation_configs.dart';
 import '/core/models/multi_threading/thread_request_model.dart';
+import '/core/utils/logger.dart';
 import '../utils/converters/convert_flutter_ui_to_image.dart';
 import '../utils/dart_ui_remove_transparent_image_areas.dart';
 import '../utils/encoder/encode_image.dart';
@@ -82,7 +83,11 @@ class ImageConverterService {
         );
       } catch (e) {
         // Fallback to the main thread.
-        debugPrint('Fallback to main thread: $e');
+        Logger.log(
+          tag: 'ImageConverterService',
+          level: LoggerLevel.warning,
+          message: 'Fallback to main thread: $e',
+        );
         return await _convertOnMainThread(image: image);
       }
     } else {

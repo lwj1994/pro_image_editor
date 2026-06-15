@@ -10,6 +10,7 @@ import '/core/models/editor_configs/pro_image_editor_configs.dart';
 import '/core/models/history/state_history.dart';
 import '/core/models/layers/layer.dart';
 import '/core/platform/io/io_helper.dart';
+import '/core/utils/logger.dart';
 import '/features/filter_editor/types/filter_matrix.dart';
 import '/features/tune_editor/models/tune_adjustment_matrix.dart';
 import '/shared/extensions/export_string_extension.dart';
@@ -115,9 +116,11 @@ class ExportStateHistory {
     // Write JSON String to the temporary file
     await tempFile.writeAsString(await toJson());
 
-    if (kDebugMode) {
-      debugPrint('Export state history to file location: $filePath');
-    }
+    Logger.log(
+      tag: 'ExportStateHistory',
+      level: LoggerLevel.debug,
+      message: 'Export state history to file location: $filePath',
+    );
 
     return tempFile;
   }

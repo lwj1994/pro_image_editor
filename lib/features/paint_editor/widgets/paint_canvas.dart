@@ -44,6 +44,8 @@ class PaintCanvas extends StatefulWidget {
     this.onMultiTouchScaleStart,
     this.onMultiTouchScaleUpdate,
     this.onMultiTouchScaleEnd,
+    this.onToolPreviewUpdate,
+    this.onToolPreviewEnd,
   });
 
   /// Callback function when the active paint is done.
@@ -82,6 +84,12 @@ class PaintCanvas extends StatefulWidget {
 
   /// Callback to forward the end of a multi-touch gesture to the editor viewer.
   final ValueChanged<ScaleEndDetails>? onMultiTouchScaleEnd;
+
+  /// Callback to show or update the active paint tool preview.
+  final ValueChanged<Offset>? onToolPreviewUpdate;
+
+  /// Callback to hide the active paint tool preview.
+  final VoidCallback? onToolPreviewEnd;
 
   /// Size of the image.
   final Size drawAreaSize;
@@ -136,6 +144,7 @@ class PaintCanvasState extends State<PaintCanvas> {
   bool _hasPartialErasedAreas = false;
   bool _isMultiTouchTransforming = false;
   bool _isEraserActive = false;
+  final Map<String, Offset> _lastPartialEraserPositions = {};
 
   bool get _isPartialEraser => widget.eraserMode == EraserMode.partial;
   bool get _isEraserMode => _paintCtrl.mode == PaintMode.eraser;
@@ -158,6 +167,8 @@ class PaintCanvasState extends State<PaintCanvas> {
       }
       _isEraserActive = false;
       _hasPartialErasedAreas = false;
+      _lastPartialEraserPositions.clear();
+      widget.onToolPreviewEnd?.call();
     }
 
     _paintCtrl
@@ -226,6 +237,7 @@ class PaintCanvasState extends State<PaintCanvas> {
       case PaintMode.moveAndZoom:
         return;
       case PaintMode.eraser:
+        widget.onToolPreviewUpdate?.call(offset);
         Logger.log(
           tag: 'DoodleEraser.PaintCanvas.start',
           level: LoggerLevel.debug,
@@ -237,6 +249,7 @@ class PaintCanvasState extends State<PaintCanvas> {
               'nonPaintLayers=${_debugNonPaintLayerSummary(widget.layers)}',
         );
         _hasPartialErasedAreas = false;
+        _lastPartialEraserPositions.clear();
         _isEraserActive = true;
         widget.onRemovePartialStart();
         setState(() {});
@@ -245,6 +258,9 @@ class PaintCanvasState extends State<PaintCanvas> {
         _addPolygonPoint(offset);
         return;
       default:
+        if (_isFreeStyleMode) {
+          widget.onToolPreviewUpdate?.call(offset);
+        }
         _paintCtrl
           ..setStart(offset)
           ..addOffsets(offset);
@@ -276,10 +292,14 @@ class PaintCanvasState extends State<PaintCanvas> {
       case PaintMode.polygon:
         return;
       case PaintMode.eraser:
+        widget.onToolPreviewUpdate?.call(details.localFocalPoint);
         _processEraserInput(details);
         break;
       default:
         final offset = details.localFocalPoint;
+        if (_isFreeStyleMode) {
+          widget.onToolPreviewUpdate?.call(offset);
+        }
         if (!_paintCtrl.busy) {
           widget.onRefresh();
           _paintCtrl.setInProgress(true);
@@ -326,6 +346,9 @@ class PaintCanvasState extends State<PaintCanvas> {
       );
       if (_isPartialEraser) widget.onRemovePartialEnd(_hasPartialErasedAreas);
       _isEraserActive = false;
+      _hasPartialErasedAreas = false;
+      _lastPartialEraserPositions.clear();
+      widget.onToolPreviewEnd?.call();
 
       return;
     }
@@ -358,6 +381,32 @@ class PaintCanvasState extends State<PaintCanvas> {
           translated.dx * sinAngle + translated.dy * cosAngle,
         ) +
         center;
+  }
+
+  List<ErasedOffset> _buildInterpolatedErasedOffsets({
+    required Offset? start,
+    required Offset end,
+    required double radius,
+  }) {
+    if (start == null) {
+      return [
+        ErasedOffset(offset: end, radius: radius),
+      ];
+    }
+
+    final distance = (end - start).distance;
+    if (distance == 0) return const [];
+
+    final spacing = max(1.0, radius * 0.5);
+    final steps = max(1, (distance / spacing).ceil());
+
+    return List.generate(steps, (index) {
+      final progress = (index + 1) / steps;
+      return ErasedOffset(
+        offset: Offset.lerp(start, end, progress)!,
+        radius: radius,
+      );
+    });
   }
 
   void _processEraserInput(ScaleUpdateDetails details) {
@@ -400,14 +449,17 @@ class PaintCanvasState extends State<PaintCanvas> {
             Offset(scaledRawSize.width, scaledRawSize.height) / 2;
         final Offset rotatedPosition =
             _rotatePoint(position, center, -rotation);
+        final Offset erasedPosition = rotatedPosition / layerScale;
+        final erasedOffsets = _buildInterpolatedErasedOffsets(
+          start: _lastPartialEraserPositions[layer.id],
+          end: erasedPosition,
+          radius: widget.eraserRadius,
+        );
 
-        layer.item.erasedOffsets
-          ..add(ErasedOffset(
-            offset: rotatedPosition / layerScale,
-            radius: widget.eraserRadius,
-          ))
-          ..toSet()
-          ..toList();
+        _lastPartialEraserPositions[layer.id] = erasedPosition;
+        if (erasedOffsets.isEmpty) continue;
+
+        layer.item.erasedOffsets.addAll(erasedOffsets);
         layer.item = layer.item.copy();
         _hasPartialErasedAreas = true;
         Logger.log(
@@ -415,8 +467,9 @@ class PaintCanvasState extends State<PaintCanvas> {
           level: LoggerLevel.debug,
           message: 'layer=${layer.id} '
               'mode=${layer.item.mode} '
+              'added=${erasedOffsets.length} '
               'erasedOffsets=${layer.item.erasedOffsets.length} '
-              'position=$rotatedPosition',
+              'position=$erasedPosition',
         );
       } else {
         bool hasHit = _hitTestManager.hitTest(
@@ -503,6 +556,7 @@ class PaintCanvasState extends State<PaintCanvas> {
     _paintCtrl
       ..setInProgress(false)
       ..reset();
+    widget.onToolPreviewEnd?.call();
     setState(() {});
   }
 

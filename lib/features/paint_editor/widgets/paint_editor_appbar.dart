@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '/core/models/editor_configs/pro_image_editor_configs.dart';
+import '/features/paint_editor/enums/paint_editor_enum.dart';
 import '/shared/widgets/platform/platform_popup_menu.dart';
 
 /// A custom AppBar for the paint editor, providing controls for undo, redo,
@@ -15,6 +16,7 @@ class PaintEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// - [i18n]: Localization strings for tooltips and labels.
   /// - [constraints]: Box constraints for responsive layout adjustments.
   /// - [designMode]: Indicates the current design mode of the editor.
+  /// - [currentMode]: Indicates the current paint mode of the editor.
   /// - [canUndo]: Whether undo action is currently available.
   /// - [canRedo]: Whether redo action is currently available.
   /// - [isFillMode]: Whether fill mode is currently enabled.
@@ -45,6 +47,7 @@ class PaintEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onOpenLineWeightBottomSheet,
     required this.isFillMode,
     required this.designMode,
+    required this.currentMode,
   });
 
   /// Configuration settings for the paint editor's appearance.
@@ -58,6 +61,9 @@ class PaintEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// Indicates the current design mode of the editor.
   final ImageEditorDesignMode designMode;
+
+  /// Indicates the current paint mode of the editor.
+  final PaintMode currentMode;
 
   /// Whether undo action is currently available.
   final bool canUndo;
@@ -91,6 +97,10 @@ class PaintEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// Callback triggered to open the line weight settings.
   final Function() onOpenLineWeightBottomSheet;
+
+  bool get _showOpacityAdjustmentButton =>
+      paintEditorConfigs.showOpacityAdjustmentButton &&
+      currentMode != PaintMode.eraser;
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +188,7 @@ class PaintEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               onTap: onTapMenuFill,
             ),
-          if (paintEditorConfigs.showOpacityAdjustmentButton)
+          if (_showOpacityAdjustmentButton)
             PopupMenuOption(
               label: i18n.changeOpacity,
               icon: Icon(
@@ -234,7 +244,7 @@ class PaintEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             onPressed: onToggleFill,
           ),
-        if (paintEditorConfigs.showOpacityAdjustmentButton)
+        if (_showOpacityAdjustmentButton)
           IconButton(
             tooltip: i18n.changeOpacity,
             padding: const EdgeInsets.symmetric(horizontal: 8),

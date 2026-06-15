@@ -221,6 +221,9 @@ class PaintEditorState extends State<PaintEditor>
   /// Update the layer stack.
   late final StreamController<void> _layerStackStream;
 
+  /// Update the paint tool preview indicator.
+  late final StreamController<void> _paintToolPreviewStream;
+
   /// A ScrollController for controlling the scrolling behavior of the bottom
   /// navigation bar.
   late ScrollController _bottomBarScrollCtrl;
@@ -251,6 +254,9 @@ class PaintEditorState extends State<PaintEditor>
 
   /// The size of the eraser tool in pixels.
   late double eraserRadius = configs.paintEditor.eraserSize;
+
+  bool _isPaintToolSizePreviewVisible = false;
+  Offset? _paintToolPointerPreviewPosition;
 
   /// A list of [PaintModeBottomBarItem] representing the available drawing
   /// modes in the paint editor.
@@ -356,6 +362,7 @@ class PaintEditorState extends State<PaintEditor>
     uiPickerStream.close();
     _uiAppbarStream.close();
     _layerStackStream.close();
+    _paintToolPreviewStream.close();
     screenshotCtrl.destroy();
     ServicesBinding.instance.keyboard.removeHandler(_onKeyEvent);
     super.dispose();
@@ -505,6 +512,7 @@ class PaintEditorState extends State<PaintEditor>
     uiPickerStream = StreamController.broadcast();
     _uiAppbarStream = StreamController.broadcast();
     _layerStackStream = StreamController.broadcast();
+    _paintToolPreviewStream = StreamController.broadcast();
 
     uiPickerStream.stream.listen((_) => rebuildController.add(null));
     _uiAppbarStream.stream.listen((_) => rebuildController.add(null));
@@ -527,6 +535,8 @@ class PaintEditorState extends State<PaintEditor>
 
   /// Opens a bottom sheet to adjust the line weight when drawing.
   void openLinWidthBottomSheet() {
+    final isEraserMode = paintMode == PaintMode.eraser;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: paintEditorConfigs.style.lineWidthBottomSheetBackground,
@@ -539,12 +549,16 @@ class PaintEditorState extends State<PaintEditor>
         closeButton: paintEditorConfigs.widgets.lineWidthCloseButton,
         customSlider: paintEditorConfigs.widgets.sliderLineWidth,
         state: this,
-        value: paintCtrl.strokeWidth,
+        value: isEraserMode ? eraserRadius : paintCtrl.strokeWidth,
         designMode: designMode,
         theme: theme,
         rebuildController: rebuildController,
         onValueChanged: (value) {
-          setStrokeWidth(value);
+          if (isEraserMode) {
+            setEraserRadius(value);
+          } else {
+            setStrokeWidth(value);
+          }
         },
       ),
     );
@@ -552,6 +566,8 @@ class PaintEditorState extends State<PaintEditor>
 
   /// Opens a bottom sheet to adjust the opacity when drawing.
   void openOpacityBottomSheet() {
+    if (paintMode == PaintMode.eraser) return;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: paintEditorConfigs.style.opacityBottomSheetBackground,
@@ -609,8 +625,53 @@ class PaintEditorState extends State<PaintEditor>
     rebuildController.add(null);
   }
 
+  bool get _supportsPaintToolPreview {
+    return paintMode == PaintMode.eraser || paintMode.isFreeStyleMode;
+  }
+
+  double get _paintToolPreviewRadius {
+    if (paintMode == PaintMode.eraser) return eraserRadius;
+    return paintCtrl.scaledStrokeWidth / 2;
+  }
+
+  void _refreshPaintToolPreview() {
+    if (!_paintToolPreviewStream.isClosed) {
+      _paintToolPreviewStream.add(null);
+    }
+  }
+
+  /// Shows the paint tool size preview at the center of the canvas.
+  void showPaintToolSizePreview() {
+    if (!_supportsPaintToolPreview) return;
+
+    _paintToolPointerPreviewPosition = null;
+    _isPaintToolSizePreviewVisible = true;
+    _refreshPaintToolPreview();
+  }
+
+  /// Hides the paint tool size preview shown while adjusting tool size.
+  void hidePaintToolSizePreview() {
+    _isPaintToolSizePreviewVisible = false;
+    _refreshPaintToolPreview();
+  }
+
+  void _showPaintToolPointerPreview(Offset position) {
+    if (!_supportsPaintToolPreview) return;
+
+    _paintToolPointerPreviewPosition = position;
+    _refreshPaintToolPreview();
+  }
+
+  void _hidePaintToolPointerPreview() {
+    _paintToolPointerPreviewPosition = null;
+    _refreshPaintToolPreview();
+  }
+
   /// Set the PaintMode for the current state and trigger an update if provided.
   void setMode(PaintMode mode) {
+    _isPaintToolSizePreviewVisible = false;
+    _paintToolPointerPreviewPosition = null;
+    _refreshPaintToolPreview();
     paintCtrl.setMode(mode);
     paintEditorCallbacks?.handlePaintModeChanged(mode);
     rebuildController.add(null);
@@ -844,6 +905,16 @@ class PaintEditorState extends State<PaintEditor>
     paintCtrl.setStrokeWidth(value);
     rebuildController.add(null);
     callbacks.paintEditorCallbacks?.handleLineWidthChanged(value);
+    _refreshPaintToolPreview();
+    setState(() {});
+  }
+
+  /// Set the eraser radius.
+  void setEraserRadius(double value) {
+    eraserRadius = value;
+    rebuildController.add(null);
+    callbacks.paintEditorCallbacks?.handleLineWidthChanged(value);
+    _refreshPaintToolPreview();
     setState(() {});
   }
 
@@ -932,6 +1003,7 @@ class PaintEditorState extends State<PaintEditor>
         onOpenOpacityBottomSheet: openOpacityBottomSheet,
         onOpenLineWeightBottomSheet: openLinWidthBottomSheet,
         designMode: designMode,
+        currentMode: paintMode,
       ),
     );
   }
@@ -1059,6 +1131,7 @@ class PaintEditorState extends State<PaintEditor>
                   ],
                 ),
               ),
+              _buildPaintToolPreviewOverlay(),
             ],
           ),
         ),
@@ -1074,6 +1147,34 @@ class PaintEditorState extends State<PaintEditor>
         ...paintEditorConfigs.widgets.bodyItems!(
             this, rebuildController.stream),
     ];
+  }
+
+  Widget _buildPaintToolPreviewOverlay() {
+    return StreamBuilder<void>(
+      stream: _paintToolPreviewStream.stream,
+      builder: (context, snapshot) {
+        if (!_supportsPaintToolPreview) return const SizedBox.shrink();
+
+        final center = _paintToolPointerPreviewPosition ??
+            (_isPaintToolSizePreviewVisible
+                ? Offset(editorBodySize.width / 2, editorBodySize.height / 2)
+                : null);
+        final radius = _paintToolPreviewRadius;
+
+        if (center == null || radius <= 0) return const SizedBox.shrink();
+
+        return Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _PaintToolPreviewPainter(
+                center: center,
+                radius: radius,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildBackground() {
@@ -1139,6 +1240,8 @@ class PaintEditorState extends State<PaintEditor>
       onMultiTouchScaleEnd: (details) {
         interactiveViewer.currentState?.onScaleEnd(details);
       },
+      onToolPreviewUpdate: _showPaintToolPointerPreview,
+      onToolPreviewEnd: _hidePaintToolPointerPreview,
       onTap: (details) =>
           callbacks.paintEditorCallbacks?.onTap?.call(this, details),
       onRemoveLayer: (removeIdList) {
@@ -1306,6 +1409,7 @@ class PaintEditorState extends State<PaintEditor>
       ..add(EnumProperty<PaintMode>('paintMode', paintMode))
       ..add(ColorProperty('activeColor', activeColor))
       ..add(DoubleProperty('strokeWidth', strokeWidth))
+      ..add(DoubleProperty('eraserRadius', eraserRadius))
       ..add(DoubleProperty('opacity', opacity))
       ..add(IntProperty('historyPointer', historyPointer))
       ..add(IntProperty('stateHistoryLength', stateHistory.length))
@@ -1315,5 +1419,38 @@ class PaintEditorState extends State<PaintEditor>
           value: _enableZoom, ifTrue: 'zoom enabled'))
       ..add(FlagProperty('hasFakeHeroBytes',
           value: _fakeHeroBytes != null, ifTrue: 'fake hero set'));
+  }
+}
+
+class _PaintToolPreviewPainter extends CustomPainter {
+  const _PaintToolPreviewPainter({
+    required this.center,
+    required this.radius,
+  });
+
+  final Offset center;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final shadowPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = Colors.black.withValues(alpha: 0.45)
+      ..isAntiAlias = true;
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = Colors.white.withValues(alpha: 0.95)
+      ..isAntiAlias = true;
+
+    canvas
+      ..drawCircle(center, radius, shadowPaint)
+      ..drawCircle(center, radius, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PaintToolPreviewPainter oldDelegate) {
+    return oldDelegate.center != center || oldDelegate.radius != radius;
   }
 }

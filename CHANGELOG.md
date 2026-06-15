@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.2.2
+- **FEAT**(paint-editor): Show a circular paint tool preview while drawing, erasing, or adjusting tool size.
+- **FIX**(paint-editor): Allow the line width control to adjust partial eraser size in eraser mode.
+- **FIX**(paint-editor): Hide opacity controls while the eraser tool is active.
+- **FIX**(paint-editor): Interpolate partial eraser samples to avoid dotted erase marks during fast strokes.
+
 ## 12.2.1
 - **FEAT**(logger): Add a unified package logger with levels, tags, and an external hook for host applications.
 - **FEAT**(paint-editor): Allow two-finger move and zoom gestures while painting or erasing.

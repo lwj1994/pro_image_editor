@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.2.1
+- **FEAT**(logger): Add a unified package logger with levels, tags, and an external hook for host applications.
+- **FEAT**(paint-editor): Allow two-finger move and zoom gestures while painting or erasing.
+- **FIX**(paint-editor): Preserve non-paint layers when using the partial eraser.
+- **FIX**(paint-layer): Make saved paint layers selectable by their rectangular layer bounds.
+
 ## 12.1.5
 - **FEAT**(helper-lines): Add layer edge alignment snap support for both same-side and opposite-side edges (left/right, top/bottom).
 - **FEAT**(helper-lines): Allow multiple layer-align guide lines to render simultaneously when multiple align conditions are satisfied.
